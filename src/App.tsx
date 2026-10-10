@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { CalendarClock, LogIn, LogOut, Plus, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
