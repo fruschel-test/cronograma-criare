@@ -926,3 +926,55 @@ tbody tr:hover{background:#fbfcfe}
 @media (min-width: 761px) {
   .spreadsheet-wrap { overflow-x: auto !important; }
 }
+
+
+/* FIX V3: largura aplicada também às células do corpo; evita que as primeiras
+   etapas sejam comprimidas pelo algoritmo de layout da tabela. */
+.spreadsheet-table {
+  width: 1900px !important;
+  min-width: 1900px !important;
+  max-width: none !important;
+  table-layout: fixed !important;
+}
+.spreadsheet-table thead tr.stage-heading-row th,
+.spreadsheet-table tbody td.sheet-date-cell {
+  width: 112px !important;
+  min-width: 112px !important;
+  max-width: 112px !important;
+  box-sizing: border-box !important;
+}
+.spreadsheet-table thead tr.sector-group-row th.project-col,
+.spreadsheet-table tbody td.project-col {
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+}
+.spreadsheet-table thead tr.sector-group-row th:nth-child(2),
+.spreadsheet-table tbody td:nth-child(2) {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+.spreadsheet-table thead tr.stage-heading-row th {
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  white-space: normal !important;
+  padding: 8px 6px !important;
+}
+.spreadsheet-wrap { overflow-x: auto !important; }
+
+
+/* Lista de Cronogramas: mesma visualização de etapas usada no Dashboard. */
+.projects-timeline-list { display:flex; flex-direction:column; gap:14px; min-width:0; }
+.projects-timeline-list .table-heading { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+.project-timeline-card { overflow:hidden; }
+.project-timeline-card .dashboard-project-title { align-items:center; }
+.project-card-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.project-stage-scroll { overflow-x:auto; padding-bottom:8px; }
+.project-stage-scroll .dashboard-sector-groups,.project-stage-scroll .dashboard-stage-arrows { min-width:1050px; }
+.project-stage-scroll .dashboard-stage { cursor:pointer; }
+.project-stage-scroll .dashboard-arrow-number { height:38px; }
+.project-stage-date { font-size:11px; font-weight:700; padding:5px 2px 0; white-space:nowrap; }
+.project-stage-countdown { display:block; font-size:9px; line-height:1.25; padding:2px 2px 0; color:#667085; }
+.project-card-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid #edf0f4; padding-top:12px; margin-top:6px; }
+@media (max-width:700px) { .project-timeline-card .dashboard-project-title { align-items:flex-start; flex-direction:column; } .project-card-footer { align-items:flex-start; flex-direction:column; } }

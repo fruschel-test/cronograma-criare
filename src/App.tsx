@@ -249,16 +249,9 @@ function App() {
     setAuditEntries([]);
     setAuditLoading(true);
     setError(""); setNotice("");
-    if (supabase) {
-      const { data, error: auditError } = await supabase
-        .from("project_audit_log")
-        .select("id,action,changed_at,actor_email,summary")
-        .eq("project_id", project.id)
-        .order("changed_at", { ascending: false })
-        .limit(20);
-      if (auditError) setError(`Histórico: ${auditError.message}`);
-      else setAuditEntries((data ?? []) as typeof auditEntries);
-    }
+    // O histórico de auditoria é opcional. Não consultar project_audit_log
+    // até que a tabela seja criada no Supabase; abrir um projeto não deve falhar.
+    setAuditEntries([]);
     setAuditLoading(false);
   }
   async function saveTimeline() {
@@ -370,24 +363,11 @@ function App() {
           const stageName = (stage: TimelineStage | undefined) => stage?.label ?? "Aguardando data";
           return <>
             <div className="dashboard-kpis">
-              <article className="dashboard-kpi">
-                <span className="kpi-icon kpi-blue"><CalendarDays size={24}/></span>
-                <div><span>Projetos ativos</span><strong>{projects.filter(project => project.status === "ativo").length}</strong></div>
-              </article>
-              <article className="dashboard-kpi">
-                <span className="kpi-icon kpi-green"><ShieldCheck size={24}/></span>
-                <div><span>Etapas com data passada</span><strong>{completedStages}/{focusStages.length || 12}</strong><div className="kpi-progress"><i style={{width:`${Math.min(100, Math.round(completedStages / Math.max(1, focusStages.length) * 100))}%`}}/></div></div>
-              </article>
-              <article className="dashboard-kpi">
-                <span className="kpi-icon kpi-orange"><CalendarClock size={24}/></span>
-                <div><span>Próxima etapa</span><strong className="kpi-orange-text">{nextDateDays === null ? "—" : nextDateDays < 0 ? `${Math.abs(nextDateDays)} dias em atraso` : nextDateDays === 0 ? "Hoje" : `${nextDateDays} dias úteis`}</strong><small>{stageName(nextStage)}{nextStage?.date ? ` · ${formatDate(nextStage.date)}` : ""}</small></div>
-              </article>
-              <article className="dashboard-kpi">
-                <span className="kpi-icon kpi-red"><span className="warning-mark">!</span></span>
-                <div><span>Atrasos</span><strong className="kpi-red-text">{overdueProjects}</strong><small>projetos com entrega vencida</small></div>
-              </article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-blue"><CalendarDays size={24}/></span><div><span>Total de projetos</span><strong>{projects.length}</strong></div></article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-green"><Users size={24}/></span><div><span>Total de clientes</span><strong>{clients.length}</strong></div></article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-orange"><CalendarClock size={24}/></span><div><span>Projetos ativos</span><strong>{projects.filter(project => project.status === "ativo").length}</strong></div></article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-red"><span className="warning-mark">!</span></span><div><span>Atrasos</span><strong className="kpi-red-text">{overdueProjects}</strong><small>projetos com entrega vencida</small></div></article>
             </div>
-
             {!focusProject ? <section className="dashboard-project-card empty-dashboard">
               <div className="empty-state"><CalendarClock size={32}/><strong>Nenhum projeto cadastrado</strong><span>Cadastre um cliente e crie seu primeiro projeto para visualizar o acompanhamento de etapas.</span><button className="primary-button" onClick={() => setPage("projects")}>Abrir cronogramas</button></div>
             </section> : <div className="dashboard-detail-layout">
@@ -483,40 +463,19 @@ function App() {
               <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setShowProjectForm(false)}>Cancelar</button><button className="primary-button" type="submit">Salvar projeto</button></div>
             </>}
           </form>}
-          <section className="table-card">
+          <section className="projects-timeline-list">
             <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
-            {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> :
-              <div className="spreadsheet-wrap"><table className="spreadsheet-table"><thead>
-              <tr className="sector-group-row">
-                <th className="sheet-sticky project-col meta-column" rowSpan={2}>Projeto / cliente</th>
-                <th className="meta-column" rowSpan={2}>Contrato</th>
-                <th className="sector-group sector-comercial" colSpan={4}>COMERCIAL</th>
-                <th className="sector-group sector-conferencia" colSpan={4}>CONFERÊNCIA</th>
-                <th className="sector-group sector-comercial" colSpan={1}>COMERCIAL</th>
-                <th className="sector-group sector-logistica" colSpan={3}>LOGÍSTICA</th>
-                <th className="meta-column" rowSpan={2}>Status</th>
-                <th className="sheet-action-col meta-column" rowSpan={2}>Editar</th>
-              </tr>
-              <tr className="stage-heading-row">
-                {calculatedStages({}).map((stage,index)=><th key={stage.key} className={stageSectorClass(index)} title={stage.label}><span className="stage-heading-number">{index+1}</span>{stage.label}</th>)}
-              </tr>
-              </thead><tbody>{filteredProjects.map(project => {
-                const stages=calculatedStages(readTimeline(project));
-                return <tr key={project.id}>
-                  <td className="sheet-sticky project-col meta-column"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>
-                  <td className="meta-column">{project.contract_number ?? "—"}</td>
-                  {stages.map((stage, index) => {
-                    const value=stage.date || "";
-                    const remaining=value?workdaysBetween(isoDate(new Date()),value):null;
-                    const cls=!value?"sheet-empty":remaining!==null&&remaining<0?"sheet-overdue":remaining!==null&&remaining<=7?"sheet-soon":"sheet-ok";
-                    return <td key={stage.key} className={`sheet-date-cell ${stageSectorClass(index)}`}><button type="button" className={`sheet-date ${cls} ${stageSectorClass(index)}`} onClick={()=>openTimeline(project)} title={`${stage.label}${stage.rule?` — ${stage.rule}`:""}; clique para abrir e editar`}>
-                      <span>{formatDate(value)}</span>{value && <small>{formatCountdown(value)}</small>}
-                    </button></td>;
-                  })}
-                  <td className="meta-column"><span className={`status-pill status-${project.status}`}>{project.status}</span></td>
-                  <td className="sheet-action-col meta-column"><button className="secondary-button compact-button" onClick={()=>openTimeline(project)}>Editar</button></td>
-                </tr>;
-              })}</tbody></table></div>}
+            {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28}/><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> : filteredProjects.map(project => {
+              const stages = calculatedStages(readTimeline(project));
+              const today = isoDate(new Date());
+              const nextIndex = stages.findIndex(stage => stage.date && stage.date >= today);
+              return <article className="dashboard-project-card project-timeline-card" key={project.id}>
+                <div className="dashboard-project-title"><div><h2>{project.name}</h2><p>{project.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {project.contract_number ?? "—"}</span><span><Users size={15}/>{project.clients?.name ?? "Cliente"}</span></div></div><div className="project-card-actions"><span className={`status-pill status-${project.status}`}>{project.status}</span><button className="secondary-button compact-button" onClick={() => void openTimeline(project)}><Pencil size={14}/> Abrir projeto</button></div></div>
+                <div className="project-stage-scroll"><div className="dashboard-sector-groups"><span className="sector-band band-commercial" style={{gridColumn:"span 4"}}>COMERCIAL</span><span className="sector-band band-conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</span><span className="sector-band band-commercial" style={{gridColumn:"span 1"}}>COMERCIAL</span><span className="sector-band band-logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</span></div>
+                <div className="dashboard-stage-arrows">{stages.map((stage,index)=>{const done=Boolean(stage.date && stage.date < today);const current=index===nextIndex;return <button key={stage.key} className={`dashboard-stage ${stageSectorClass(index)} ${done?"stage-complete":""} ${current?"stage-current":""}`} onClick={()=>void openTimeline(project)} title={`${index+1}. ${stage.label}${stage.date?` — ${formatDate(stage.date)}`:""}`}><span className="dashboard-arrow-number">{index+1}</span><span className="dashboard-stage-label">{stage.label}</span><span className="project-stage-date">{formatDate(stage.date)}</span><small className="project-stage-countdown">{stage.date?formatCountdown(stage.date):"Sem data"}</small></button>})}</div></div>
+                <div className="project-card-footer"><span className="muted">Clique em uma etapa para abrir e editar as datas.</span><button className="primary-button" onClick={() => void openTimeline(project)}>Abrir cronograma</button></div>
+              </article>;
+            })}
           </section>
           {selectedProjectId && (() => {
             const selected=projects.find(p=>p.id===selectedProjectId);
