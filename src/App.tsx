@@ -69,6 +69,12 @@ function calculatedStages(manual: ManualTimeline): TimelineStage[] {
   ];
 }
 
+function stageSectorClass(index: number) {
+  if (index <= 3 || index === 8) return "sector-comercial";
+  if (index >= 4 && index <= 7) return "sector-conferencia";
+  return "sector-logistica";
+}
+
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   const [year, month, day] = value.slice(0, 10).split("-");
@@ -394,7 +400,7 @@ function App() {
             {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> :
               <div className="spreadsheet-wrap"><table className="spreadsheet-table"><thead><tr>
                 <th className="sheet-sticky project-col">Projeto / cliente</th><th>Contrato</th>
-                {calculatedStages({}).map(stage=><th key={stage.key} title={stage.label}>{stage.label}</th>)}
+                {calculatedStages({}).map((stage,index)=><th key={stage.key} className={stageSectorClass(index)} title={stage.label}><span className="stage-heading-number">{index+1}</span>{stage.label}</th>)}
                 <th>Status</th><th className="sheet-action-col">Abrir</th>
               </tr></thead><tbody>{filteredProjects.map(project => {
                 const stages=calculatedStages(readTimeline(project));
@@ -405,7 +411,7 @@ function App() {
                     const value=stage.date || "";
                     const remaining=value?workdaysBetween(isoDate(new Date()),value):null;
                     const cls=!value?"sheet-empty":remaining!==null&&remaining<0?"sheet-overdue":remaining!==null&&remaining<=7?"sheet-soon":"sheet-ok";
-                    return <td key={stage.key} className="sheet-date-cell"><button type="button" className={`sheet-date ${cls}`} onClick={()=>openTimeline(project)} title={`${stage.label}${stage.rule?` — ${stage.rule}`:""}; clique para abrir e editar`}>
+                    return <td key={stage.key} className={`sheet-date-cell ${stageSectorClass(index)}`}><button type="button" className={`sheet-date ${cls} ${stageSectorClass(index)}`} onClick={()=>openTimeline(project)} title={`${stage.label}${stage.rule?` — ${stage.rule}`:""}; clique para abrir e editar`}>
                       <span>{formatDate(value)}</span>{value && <small>{formatCountdown(value)}</small>}
                     </button></td>;
                   })}
@@ -423,7 +429,7 @@ function App() {
               <p className="timeline-note">As datas automáticas consideram dias úteis, excluindo sábados, domingos, feriados nacionais e o feriado estadual de 20 de setembro (RS). Feriados municipais não são considerados.</p>
               <div className="timeline-list">{stages.map((stage,index)=>{
                 const editable=stage.kind==="manual"; const value=stage.date || "";
-                return <article className="timeline-row" key={stage.key}><div className="timeline-number">{index+1}</div><div className="timeline-stage"><strong>{stage.label}</strong><span>{editable?"Data informada manualmente":stage.rule}</span></div><div className="timeline-date">{editable && canEdit ? <input aria-label={stage.label} type="date" value={value} onChange={e=>setTimelineDraft(prev=>({...prev,[stage.key]:e.target.value}))}/> : <span>{formatDate(value)}</span>}</div><div className={`timeline-countdown ${countdownClass(value)}`}>{value?formatCountdown(value):"Aguardando data base"}</div><span className={`timeline-kind ${editable?"manual":"automatic"}`}>{editable?"Manual":"Automática"}</span></article>;
+                return <article className={`timeline-row ${stageSectorClass(index)}`} key={stage.key}><div className="timeline-number">{index+1}</div><div className="timeline-stage"><strong>{stage.label}</strong><span>{editable?"Data informada manualmente":stage.rule}</span></div><div className="timeline-date">{editable && canEdit ? <input aria-label={stage.label} type="date" value={value} onChange={e=>setTimelineDraft(prev=>({...prev,[stage.key]:e.target.value}))}/> : <span>{formatDate(value)}</span>}</div><div className={`timeline-countdown ${countdownClass(value)}`}>{value?formatCountdown(value):"Aguardando data base"}</div><span className={`timeline-kind ${editable?"manual":"automatic"}`}>{editable?"Manual":"Automática"}</span></article>;
               })}</div>
               <div className="timeline-footer"><span className="muted">Datas automáticas são recalculadas quando uma data-base é alterada.</span>{canEdit && <button className="primary-button" disabled={timelineSaving} onClick={()=>void saveTimeline()}>{timelineSaving?"Salvando…":"Salvar cronograma"}</button>}</div>
               {!canEdit && <p className="muted">Seu perfil é somente leitura; solicite acesso de editor para alterar datas.</p>}
