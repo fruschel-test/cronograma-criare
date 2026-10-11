@@ -269,11 +269,10 @@ function App() {
 
   async function loadUserProfiles() {
     if (!supabase || role !== "admin") return;
-    setUsersLoading(true); setError("");
+    setError("");
     const { data, error: listError } = await supabase.from("profiles").select("id,role,email").order("role");
     if (listError) setError(`Não foi possível carregar usuários: ${listError.message}`);
     else setUserProfiles((data ?? []) as typeof userProfiles);
-    setUsersLoading(false);
   }
 
 
