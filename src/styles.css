@@ -863,36 +863,66 @@ tbody tr:hover{background:#fbfcfe}
 }
 
 
-/* Correção de navegação: deixar o editor fácil de localizar após Abrir projeto */
-#timeline-detail {
-  scroll-margin-top: 18px;
-}
-.timeline-card {
-  margin-top: 18px;
-}
-
-/* Impede que as colunas das primeiras etapas fiquem esmagadas */
+/* CORREÇÃO DE LAYOUT: as 12 etapas mantêm larguras consistentes */
 .spreadsheet-wrap {
-  overflow-x: auto;
+  width: 100%;
   max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: auto;
 }
 .spreadsheet-table {
-  table-layout: auto !important;
   width: max-content !important;
   min-width: 1500px !important;
+  table-layout: fixed !important;
 }
-.spreadsheet-table thead th:not(.project-col):not(.meta-column),
-.spreadsheet-table tbody td.sheet-date-cell {
-  min-width: 112px;
-  width: 112px;
+.spreadsheet-table thead tr.stage-heading-row th {
+  width: 112px !important;
+  min-width: 112px !important;
+  max-width: 112px !important;
+}
+.spreadsheet-table thead tr.sector-group-row th.sector-group {
+  min-width: 0 !important;
+  max-width: none !important;
+}
+.spreadsheet-table thead tr.stage-heading-row th .stage-heading-number {
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+  height: 38px !important;
+  margin: 0 auto 7px !important;
+  padding: 0 13px 0 8px !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 12% 50%);
+  background: #666666 !important;
+  color: #ffffff !important;
+  font-size: 20px !important;
+}
+.spreadsheet-table thead tr.stage-heading-row th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+  line-height: 1.25;
 }
 .spreadsheet-table thead th.project-col,
 .spreadsheet-table tbody td.project-col {
-  min-width: 150px;
-  width: 150px;
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
 }
 .spreadsheet-table thead th.meta-column:nth-child(2),
 .spreadsheet-table tbody td.meta-column:nth-child(2) {
-  min-width: 80px;
-  width: 80px;
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+}
+.spreadsheet-table thead th.sheet-action-col,
+.spreadsheet-table tbody td.sheet-action-col {
+  width: 82px !important;
+  min-width: 82px !important;
+  max-width: 82px !important;
+}
+@media (min-width: 761px) {
+  .spreadsheet-wrap { overflow-x: auto !important; }
 }

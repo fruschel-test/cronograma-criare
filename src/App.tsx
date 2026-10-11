@@ -243,14 +243,6 @@ function App() {
     await loadData();
   }
 
-  useEffect(() => {
-    if (page === "projects" && selectedProjectId) {
-      requestAnimationFrame(() => {
-        document.getElementById("timeline-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-    }
-  }, [page, selectedProjectId]);
-
   async function openTimeline(project: Project) {
     setSelectedProjectId(project.id);
     setTimelineDraft({ ...readTimeline(project) });
@@ -264,12 +256,8 @@ function App() {
         .eq("project_id", project.id)
         .order("changed_at", { ascending: false })
         .limit(20);
-      if (auditError) {
-        // A falha do histórico não deve impedir a edição do cronograma.
-        setAuditEntries([]);
-      } else {
-        setAuditEntries((data ?? []) as typeof auditEntries);
-      }
+      if (auditError) setError(`Histórico: ${auditError.message}`);
+      else setAuditEntries((data ?? []) as typeof auditEntries);
     }
     setAuditLoading(false);
   }
@@ -366,16 +354,19 @@ function App() {
         {notice && <div className="success-banner">{notice}</div>}
 
         {page === "dashboard" && (() => {
-          const focusProject = projects[0];
+          const focusProject = projects.find(project => project.id === selectedProjectId) ?? projects[0];
           const focusStages = focusProject ? calculatedStages(readTimeline(focusProject)) : [];
           const today = isoDate(new Date());
           const datedStages = focusStages.filter(stage => Boolean(stage.date));
-          const completedStages = datedStages.filter(stage => (stage.date || "") <= today).length;
-          const nextStage = focusStages.find(stage => stage.date && stage.date >= today) ?? focusStages.find(stage => !stage.date);
+          // A etapa só é considerada concluída quando sua data já passou.
+          const completedStages = datedStages.filter(stage => (stage.date || "") < today).length;
+          const nextDateIndex = focusStages.findIndex(stage => Boolean(stage.date) && (stage.date || "") >= today);
+          const firstUndatedIndex = focusStages.findIndex(stage => !stage.date);
+          const currentStageIndex = nextDateIndex >= 0 ? nextDateIndex : firstUndatedIndex >= 0 ? firstUndatedIndex : Math.max(0, focusStages.length - 1);
+          const nextStageIndex = Math.min(focusStages.length - 1, currentStageIndex + 1);
+          const nextStage = focusStages[currentStageIndex];
           const nextDateDays = nextStage?.date ? workdaysBetween(today, nextStage.date) : null;
           const overdueProjects = projects.filter(project => project.status === "ativo" && project.delivery_date && (daysUntil(project.delivery_date) ?? 0) < 0).length;
-          const currentIndex = focusStages.findIndex(stage => stage.key === "orderPlaced");
-          const currentStageIndex = currentIndex >= 0 ? currentIndex : Math.max(0, completedStages - 1);
           const stageName = (stage: TimelineStage | undefined) => stage?.label ?? "Aguardando data";
           return <>
             <div className="dashboard-kpis">
@@ -453,10 +444,10 @@ function App() {
                 <div className="panel-stage-item"><span className="panel-stage-icon panel-green">✓</span><div><strong>Etapa {currentStageIndex+1}</strong><p>{stageName(focusStages[currentStageIndex])}</p><small>{formatDate(focusStages[currentStageIndex]?.date)}</small><small>{focusStages[currentStageIndex]?.date ? formatCountdown(focusStages[currentStageIndex].date!) : "Aguardando data"}</small></div></div>
                 <div className="panel-divider"/>
                 <p className="panel-label">Próxima etapa</p>
-                <div className="panel-stage-item"><span className="panel-stage-icon panel-blue">›</span><div><strong>Etapa {nextStage ? focusStages.findIndex(stage => stage.key === nextStage.key)+1 : "—"}</strong><p>{stageName(nextStage)}</p><small>{formatDate(nextStage?.date)}</small><small>{nextStage?.date ? formatCountdown(nextStage.date) : "Aguardando data"}</small></div></div>
+                <div className="panel-stage-item"><span className="panel-stage-icon panel-blue">›</span><div><strong>Etapa {focusStages.length ? nextStageIndex + 1 : "—"}</strong><p>{stageName(focusStages[nextStageIndex])}</p><small>{formatDate(focusStages[nextStageIndex]?.date)}</small><small>{focusStages[nextStageIndex]?.date ? formatCountdown(focusStages[nextStageIndex].date!) : "Aguardando data"}</small></div></div>
                 <div className="panel-divider"/>
                 <p className="panel-label">Próxima seguinte</p>
-                <div className="panel-stage-item"><span className="panel-stage-icon panel-gray">›</span><div><strong>Etapa {nextStage ? Math.min(12, focusStages.findIndex(stage => stage.key === nextStage.key)+2) : "—"}</strong><p>{stageName(nextStage ? focusStages[focusStages.findIndex(stage => stage.key === nextStage.key)+1] : undefined)}</p><small>{formatDate(nextStage ? focusStages[focusStages.findIndex(stage => stage.key === nextStage.key)+1]?.date : undefined)}</small></div></div>
+                <div className="panel-stage-item"><span className="panel-stage-icon panel-gray">›</span><div><strong>Etapa {focusStages.length ? Math.min(focusStages.length, nextStageIndex + 2) : "—"}</strong><p>{stageName(focusStages[nextStageIndex + 1])}</p><small>{formatDate(focusStages[nextStageIndex + 1]?.date)}</small></div></div>
                 <button className="dashboard-open-button" onClick={() => { setPage("projects"); void openTimeline(focusProject); }}><Pencil size={16}/> Abrir projeto</button>
               </aside>
             </div>}
@@ -531,7 +522,7 @@ function App() {
             const selected=projects.find(p=>p.id===selectedProjectId);
             if(!selected) return null;
             const stages=calculatedStages(timelineDraft);
-            return <section id="timeline-detail" className="timeline-card">
+            return <section className="timeline-card">
               <div className="timeline-header"><div><p className="eyebrow">CRONOGRAMA DETALHADO</p><h2>{selected.name}</h2><p className="muted">{selected.clients?.name ?? "Cliente não identificado"} · Contrato {selected.contract_number ?? "—"}</p></div><button className="secondary-button" onClick={()=>setSelectedProjectId(null)}>Fechar</button></div>
               <p className="timeline-note">As datas automáticas consideram dias úteis, excluindo sábados, domingos, feriados nacionais e o feriado estadual de 20 de setembro (RS). Feriados municipais não são considerados.</p>
               <div className="timeline-list">{stages.map((stage,index)=>{
