@@ -102,8 +102,6 @@ function App() {
   const [auditEntries, setAuditEntries] = useState<Array<{id:string; action:string; changed_at:string; actor_email:string|null; summary:string}>>([]);
   const [auditLoading, setAuditLoading] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState<"editor" | "viewer">("viewer");
-  const [inviteLoading, setInviteLoading] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Array<{id:string; role:string; email:string|null}>>([]);
   const [usersLoading, setUsersLoading] = useState(false);
 
@@ -280,35 +278,7 @@ function App() {
     setUsersLoading(false);
   }
 
-  async function inviteUser(event: FormEvent) {
-    event.preventDefault();
-    if (!supabase || role !== "admin" || !inviteEmail.trim()) return;
-    setInviteLoading(true); setError(""); setNotice("");
-    const { data, error: inviteError } = await supabase.functions.invoke("admin-invite-user", {
-      body: { email: inviteEmail.trim().toLowerCase(), role: inviteRole }
-    });
-    setInviteLoading(false);
-    if (inviteError) { setError(`Falha ao enviar convite: ${inviteError.message}. Confira se a Edge Function foi publicada e se os secrets estão configurados.`); return; }
-    if (data?.error) { setError(`Falha ao enviar convite: ${data.error}`); return; }
-    setNotice(`Convite enviado para ${inviteEmail.trim()}. O usuário deverá aceitar o convite e definir o acesso.`);
-    setInviteEmail("");
-    await loadUserProfiles();
-  }
 
-  async function changeUserRole(userId: string, nextRole: "admin" | "editor" | "viewer") {
-    if (!supabase || role !== "admin") return;
-    if (userId === session?.user.id && nextRole !== "admin") {
-      setError("Para evitar bloqueio administrativo, não é possível rebaixar seu próprio perfil nesta tela.");
-      return;
-    }
-    setError(""); setNotice("");
-    const { data, error: roleError } = await supabase.functions.invoke("admin-set-user-role", {
-      body: { user_id: userId, role: nextRole }
-    });
-    if (roleError || data?.error) { setError(`Não foi possível alterar o papel: ${roleError?.message ?? data?.error}`); return; }
-    setNotice("Papel atualizado.");
-    await loadUserProfiles();
-  }
 
   useEffect(() => {
     if (session && role === "admin" && page === "admin") void loadUserProfiles();
