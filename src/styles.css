@@ -978,3 +978,12 @@ tbody tr:hover{background:#fbfcfe}
 .project-stage-countdown { display:block; font-size:9px; line-height:1.25; padding:2px 2px 0; color:#667085; }
 .project-card-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid #edf0f4; padding-top:12px; margin-top:6px; }
 @media (max-width:700px) { .project-timeline-card .dashboard-project-title { align-items:flex-start; flex-direction:column; } .project-card-footer { align-items:flex-start; flex-direction:column; } }
+
+
+/* Dashboard: cronogramas de todos os projetos */
+.dashboard-all-projects { margin-top: 22px; }
+.dashboard-all-projects .project-timeline-card { overflow: hidden; }
+.dashboard-all-projects .project-stage-scroll { overflow-x: auto; padding-bottom: 4px; }
+.dashboard-all-projects .dashboard-sector-groups,
+.dashboard-all-projects .dashboard-stage-arrows { min-width: 1120px; }
+.dashboard-all-projects .dashboard-stage { min-width: 0; }

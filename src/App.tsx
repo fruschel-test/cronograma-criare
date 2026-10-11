@@ -244,6 +244,7 @@ function App() {
   }
 
   async function openTimeline(project: Project) {
+    setPage("dashboard");
     setSelectedProjectId(project.id);
     setTimelineDraft({ ...readTimeline(project) });
     setAuditEntries([]);
@@ -387,7 +388,7 @@ function App() {
                     const stageDate = stage.date || "";
                     const isPast = Boolean(stageDate && stageDate < today);
                     const isCurrent = index === currentStageIndex;
-                    return <button key={stage.key} className={`dashboard-stage ${sector} ${isPast ? "stage-complete" : ""} ${isCurrent ? "stage-current" : ""}`} onClick={() => { setPage("projects"); void openTimeline(focusProject); }} title={`${index+1}. ${stage.label}`}>
+                    return <button key={stage.key} className={`dashboard-stage ${sector} ${isPast ? "stage-complete" : ""} ${isCurrent ? "stage-current" : ""}`} onClick={() => { void openTimeline(focusProject); }} title={`${index+1}. ${stage.label}`}>
                       <span className="dashboard-arrow-number">{index+1}</span>
                       <span className="dashboard-stage-label">{stage.label}</span>
                     </button>;
@@ -426,9 +427,22 @@ function App() {
                 <div className="panel-divider"/>
                 <p className="panel-label">Próxima seguinte</p>
                 <div className="panel-stage-item"><span className="panel-stage-icon panel-gray">›</span><div><strong>Etapa {focusStages.length ? Math.min(focusStages.length, nextStageIndex + 2) : "—"}</strong><p>{stageName(focusStages[nextStageIndex + 1])}</p><small>{formatDate(focusStages[nextStageIndex + 1]?.date)}</small></div></div>
-                <button className="dashboard-open-button" onClick={() => { setPage("projects"); void openTimeline(focusProject); }}><Pencil size={16}/> Abrir projeto</button>
+                <button className="dashboard-open-button" onClick={() => { void openTimeline(focusProject); }}><Pencil size={16}/> Abrir projeto</button>
               </aside>
             </div>}
+            <section className="projects-timeline-list dashboard-all-projects">
+              <div className="table-heading"><div><h2>Cronogramas de todos os projetos</h2><p className="muted">{projects.length} projeto(s) · selecione uma linha para ver os detalhes</p></div></div>
+              {projects.length === 0 ? <div className="empty-state">Nenhum projeto cadastrado.</div> : projects.map(project => {
+                const stages = calculatedStages(readTimeline(project));
+                const todayDate = isoDate(new Date());
+                const nextIndex = stages.findIndex(stage => stage.date && stage.date >= todayDate);
+                return <article className="dashboard-project-card project-timeline-card" key={`dashboard-${project.id}`}>
+                  <div className="dashboard-project-title"><div><h2>{project.name}</h2><p>{project.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {project.contract_number ?? "—"}</span><span><Users size={15}/>{project.clients?.name ?? "Cliente"}</span></div></div><div className="project-card-actions"><span className={`status-pill status-${project.status}`}>{project.status}</span><button className="secondary-button compact-button" onClick={() => void openTimeline(project)}><Pencil size={14}/> Abrir projeto</button></div></div>
+                  <div className="project-stage-scroll"><div className="dashboard-sector-groups"><span className="sector-band band-commercial" style={{gridColumn:"span 4"}}>COMERCIAL</span><span className="sector-band band-conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</span><span className="sector-band band-commercial" style={{gridColumn:"span 1"}}>COMERCIAL</span><span className="sector-band band-logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</span></div>
+                  <div className="dashboard-stage-arrows">{stages.map((stage,index)=>{const done=Boolean(stage.date && stage.date < todayDate);const current=index===nextIndex;return <button key={stage.key} className={`dashboard-stage ${stageSectorClass(index)} ${done?"stage-complete":""} ${current?"stage-current":""}`} onClick={() => void openTimeline(project)} title={`${index+1}. ${stage.label}${stage.date?` — ${formatDate(stage.date)}`:""}`}><span className="dashboard-arrow-number">{index+1}</span><span className="dashboard-stage-label">{stage.label}</span><span className="project-stage-date">{formatDate(stage.date)}</span><small className="project-stage-countdown">{stage.date?formatCountdown(stage.date):"Sem data"}</small></button>})}</div></div>
+                </article>;
+              })}
+            </section>
           </>;
         })()}
 
