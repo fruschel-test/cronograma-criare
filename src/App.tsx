@@ -7,6 +7,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import type { Client, Project } from "./types/database";
+import criareLogo from "./assets/logo-criare.png";
 
 type Page = "dashboard" | "clients" | "projects" | "admin";
 type ManualTimeline = { firstContact?: string; briefing?: string; contractSigned?: string; conferenceScheduled?: string; technicalBookletSigned?: string; orderPlaced?: string };
@@ -323,7 +324,7 @@ function App() {
 
   return <main className="app-shell">
     <header className="topbar">
-      <div className="brand"><div className="brand-mark small"><CalendarClock size={21} /></div><span>Cronograma <b>Criare</b></span></div>
+      <div className="brand"><img className="brand-logo" src={criareLogo} alt="Criare Moinhos" /></div>
       <div className="user-actions"><span className="user-email">{session.user.email} · {role}</span><button className="icon-button" onClick={signOut} title="Sair"><LogOut size={18} /></button></div>
     </header>
     <div className="layout">
@@ -407,7 +408,7 @@ function App() {
                 return <tr key={project.id}>
                   <td className="sheet-sticky project-col"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>
                   <td>{project.contract_number ?? "—"}</td>
-                  {stages.map((stage, index)=>{
+                  {stages.map(stage=>{
                     const value=stage.date || "";
                     const remaining=value?workdaysBetween(isoDate(new Date()),value):null;
                     const cls=!value?"sheet-empty":remaining!==null&&remaining<0?"sheet-overdue":remaining!==null&&remaining<=7?"sheet-soon":"sheet-ok";

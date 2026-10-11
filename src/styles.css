@@ -243,127 +243,52 @@ tbody tr:hover{background:#fbfcfe}
 }
 
 
-/* ==================================================
-   MENU LATERAL ESCURO + CORES DOS SETORES DO EXCEL
-   Comercial: azul | Conferência: laranja | Logística: verde
-   ================================================== */
-.layout {
-  display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
-  align-items: start;
-  min-height: calc(100vh - 72px);
-}
-.sidebar {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  min-height: calc(100vh - 72px);
-  padding: 22px 12px 18px;
-  background: #080b10;
-  color: #e5e7eb;
-  border-right: 1px solid #242a33;
-}
-.sidebar-label {
-  margin: 0 10px 12px;
-  color: #9ca3af;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .14em;
-}
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 11px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #d1d5db;
-  text-align: left;
-  font-size: 13px;
-  transition: background .15s ease, color .15s ease;
-}
-.nav-item:hover { background: #1b2028; color: #fff; }
-.nav-item.active {
-  background: #292f38;
+/* Cabeçalho preto e logo Criare Moinhos */
+.topbar {
+  background: #000;
   color: #fff;
-  box-shadow: inset 3px 0 0 #9ca3af;
+  border-bottom-color: #202020;
 }
-.nav-count {
-  margin-left: auto;
-  color: #9ca3af;
-  font-size: 11px;
+.topbar .brand { min-width: 0; }
+.brand-logo {
+  display: block;
+  width: 112px;
+  height: 64px;
+  object-fit: contain;
 }
-.sidebar-bottom {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: auto;
-  padding: 18px 9px 2px;
-  color: #9ca3af;
-  font-size: 11px;
-  line-height: 1.5;
+.topbar .user-email { color: #d1d5db; }
+.topbar .icon-button {
+  background: #202020;
+  color: #fff;
 }
-.content { min-width: 0; max-width: none; }
-.heading-actions { display: flex; align-items: center; gap: 8px; }
+.topbar .icon-button:hover { background: #333; }
 
-/* Numeral badge for each stage header */
-.spreadsheet-table thead th .stage-heading-number {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  margin: 0 4px 4px 0;
-  border-radius: 5px;
-  background: rgba(0,0,0,.09);
-  color: inherit;
-  font-size: 10px;
-  font-weight: 800;
-  vertical-align: middle;
-}
-.sector-comercial { --sector-color: #0070c0; }
-.sector-conferencia { --sector-color: #b45f06; }
-.sector-logistica { --sector-color: #00a64f; }
+/* A cor de fundo identifica o setor; datas e contagens ficam verdes */
+.spreadsheet-table th.sector-comercial { background: #0070C0; color: #fff; }
+.spreadsheet-table th.sector-conferencia { background: #B45F06; color: #fff; }
+.spreadsheet-table th.sector-logistica { background: #00B050; color: #102719; }
 
-.spreadsheet-table thead th.sector-comercial {
-  background: #e5f1fb;
-  border-top: 3px solid #0070c0;
+.spreadsheet-table td.sector-comercial,
+.spreadsheet-table td.sector-conferencia,
+.spreadsheet-table td.sector-logistica {
+  background: inherit;
 }
-.spreadsheet-table thead th.sector-conferencia {
-  background: #fff0df;
-  border-top: 3px solid #b45f06;
-}
-.spreadsheet-table thead th.sector-logistica {
-  background: #e4f5e9;
-  border-top: 3px solid #00a64f;
-}
-.spreadsheet-table td.sheet-date-cell.sector-comercial { background: #f0f7fd; }
-.spreadsheet-table td.sheet-date-cell.sector-conferencia { background: #fff8ef; }
-.spreadsheet-table td.sheet-date-cell.sector-logistica { background: #f0faf3; }
-.spreadsheet-table .sheet-date.sector-comercial:hover { outline-color: #0070c0; }
-.spreadsheet-table .sheet-date.sector-conferencia:hover { outline-color: #b45f06; }
-.spreadsheet-table .sheet-date.sector-logistica:hover { outline-color: #00a64f; }
+.spreadsheet-table .sheet-date.sector-comercial { background: #0070C0; }
+.spreadsheet-table .sheet-date.sector-conferencia { background: #B45F06; }
+.spreadsheet-table .sheet-date.sector-logistica { background: #00B050; }
 
-.timeline-row.sector-comercial { border-left: 4px solid #0070c0; }
-.timeline-row.sector-conferencia { border-left: 4px solid #b45f06; }
-.timeline-row.sector-logistica { border-left: 4px solid #00a64f; }
-
-@media (max-width: 900px) {
-  .layout { grid-template-columns: 190px minmax(0, 1fr); }
-  .sidebar { padding-left: 8px; padding-right: 8px; }
+.spreadsheet-table .sheet-date.sector-comercial span,
+.spreadsheet-table .sheet-date.sector-comercial small,
+.spreadsheet-table .sheet-date.sector-conferencia span,
+.spreadsheet-table .sheet-date.sector-conferencia small,
+.spreadsheet-table .sheet-date.sector-logistica span,
+.spreadsheet-table .sheet-date.sector-logistica small {
+  color: #14532d;
 }
-@media (max-width: 680px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar {
-    position: static;
-    min-height: auto;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .sidebar-label, .sidebar-bottom { grid-column: 1 / -1; }
-  .sidebar-bottom { margin-top: 8px; }
-  .content { padding: 24px 12px 36px; }
+.spreadsheet-table .sheet-date.sheet-overdue span,
+.spreadsheet-table .sheet-date.sheet-overdue small,
+.spreadsheet-table .sheet-date.sheet-soon span,
+.spreadsheet-table .sheet-date.sheet-soon small {
+  color: #14532d;
 }
+.spreadsheet-table .sheet-date:hover { filter: brightness(.94); }
