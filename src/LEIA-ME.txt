@@ -1,0 +1,21 @@
+# Cronograma Criare — Etapa 5: visão em grade estilo Excel
+
+## O que muda
+- A página Cronogramas passa a exibir todos os projetos em uma grade com uma linha por projeto.
+- Cada etapa do cronograma vira uma coluna, com data e contagem regressiva em dias úteis.
+- Cores para datas em dia, vencimentos próximos, atrasos e etapas ainda sem data.
+- Cabeçalho superior fixo e coluna de projeto fixa durante a rolagem.
+- Clique em uma data ou no botão Editar para abrir o cronograma detalhado e editar datas conforme o papel de acesso.
+- A grade utiliza os dados existentes do Supabase e não exige migração SQL.
+
+## Instalação
+1. Faça backup de `src/App.tsx` e `src/styles.css`.
+2. Substitua `src/App.tsx` pelo arquivo deste pacote.
+3. Acrescente `styles-additions.css` ao final de `src/styles.css`.
+4. Faça commit e confira o GitHub Actions.
+5. Abra Cronogramas e teste a rolagem horizontal/vertical e o clique em uma data.
+
+## Observações
+- Não execute SQL nesta etapa; não há mudança no banco.
+- As células são clicáveis para abrir o editor do projeto, mas as datas são editadas no painel de cronograma detalhado, evitando gravações parciais acidentais.
+- A grade mostra todas as etapas definidas pelo cálculo atual. Confirme os intervalos de negócio antes de usar as datas como compromisso formal.

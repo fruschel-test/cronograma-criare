@@ -101,9 +101,7 @@ function App() {
   const [timelineSaving, setTimelineSaving] = useState(false);
   const [auditEntries, setAuditEntries] = useState<Array<{id:string; action:string; changed_at:string; actor_email:string|null; summary:string}>>([]);
   const [auditLoading, setAuditLoading] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
   const [userProfiles, setUserProfiles] = useState<Array<{id:string; role:string; email:string|null}>>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectClientId, setProjectClientId] = useState("");
