@@ -358,7 +358,6 @@ function App() {
           const currentStageIndex = nextDateIndex >= 0 ? nextDateIndex : firstUndatedIndex >= 0 ? firstUndatedIndex : Math.max(0, focusStages.length - 1);
           const nextStageIndex = Math.min(focusStages.length - 1, currentStageIndex + 1);
           const nextStage = focusStages[currentStageIndex];
-          const nextDateDays = nextStage?.date ? workdaysBetween(today, nextStage.date) : null;
           const overdueProjects = projects.filter(project => project.status === "ativo" && project.delivery_date && (daysUntil(project.delivery_date) ?? 0) < 0).length;
           const stageName = (stage: TimelineStage | undefined) => stage?.label ?? "Aguardando data";
           return <>
