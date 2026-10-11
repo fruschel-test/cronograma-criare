@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
-  CalendarClock, LogIn, LogOut, Plus, RefreshCw, Search, ShieldCheck,
+  CalendarClock, Check, LogIn, LogOut, Plus, RefreshCw, Search, ShieldCheck,
   Users, CalendarDays, LayoutDashboard, Pencil, X
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
@@ -351,7 +351,7 @@ function App() {
         {page === "dashboard" && (() => {
           const today = isoDate(new Date());
           const activeProjects = projects.filter(project => project.status === "ativo");
-          const completedProjects = projects.filter(project => project.status === "concluido" || project.status === "concluído");
+          const completedProjects = projects.filter(project => { const stages = calculatedStages(readTimeline(project)); return stages.length > 0 && stages.every(stage => Boolean(stage.date) && (stage.date || "") < today); });
           const overdueProjectsList = activeProjects.filter(project => project.delivery_date && (daysUntil(project.delivery_date) ?? 0) < 0);
           const allStages = projects.flatMap(project => calculatedStages(readTimeline(project)).map((stage,index) => ({...stage, project, index})));
           const completedStages = allStages.filter(stage => stage.date && stage.date < today).length;
