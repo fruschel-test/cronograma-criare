@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
   CalendarClock, Check, LogIn, LogOut, Plus, RefreshCw, Search, ShieldCheck,
-  Users, CalendarDays, LayoutDashboard, Pencil, X, Save
+  Users, CalendarDays, LayoutDashboard, Pencil, X, Save, Mail, UserPlus, UserCog
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
@@ -108,6 +108,10 @@ function App() {
   const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
   const [timelineSaving, setTimelineSaving] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Array<{id:string; role:string; email:string|null}>>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("editor");
+  const [invitingUser, setInvitingUser] = useState(false);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectClientId, setProjectClientId] = useState("");
@@ -272,6 +276,34 @@ function App() {
     else setUserProfiles((data ?? []) as typeof userProfiles);
   }
 
+  async function inviteUser(event: FormEvent) {
+    event.preventDefault();
+    if (!supabase || role !== "admin" || !inviteEmail.trim()) return;
+    setInvitingUser(true); setError(""); setNotice("");
+    // A criação de usuários deve ocorrer no servidor via Edge Function; nunca usar service_role no navegador.
+    const { error: inviteError } = await supabase.functions.invoke("admin-invite-user", {
+      body: { email: inviteEmail.trim().toLowerCase(), role: inviteRole }
+    });
+    setInvitingUser(false);
+    if (inviteError) {
+      setError(`Não foi possível convidar o usuário: ${inviteError.message}. Verifique se a função Supabase admin-invite-user está implantada e configurada.`);
+      return;
+    }
+    setNotice(`Convite enviado para ${inviteEmail.trim()}.`);
+    setInviteEmail("");
+    await loadUserProfiles();
+  }
+
+  async function updateUserRole(userId: string, nextRole: string) {
+    if (!supabase || role !== "admin" || userId === session?.user.id) return;
+    setUpdatingUserId(userId); setError(""); setNotice("");
+    const { error: updateError } = await supabase.from("profiles").update({ role: nextRole }).eq("id", userId);
+    setUpdatingUserId(null);
+    if (updateError) { setError(`Não foi possível alterar o perfil: ${updateError.message}`); return; }
+    setNotice("Permissão do usuário atualizada.");
+    await loadUserProfiles();
+  }
+
 
 
   useEffect(() => {
@@ -422,6 +454,19 @@ function App() {
               </article>;
             })}
           </section>
+          {page === "admin" && role === "admin" && <section className="admin-users-page">
+            <div className="admin-users-intro"><div className="admin-users-icon"><UserCog size={25}/></div><div><h2>Usuários e permissões</h2><p>Convide pessoas para acessar o Cronograma Criare e controle o nível de acesso de cada uma.</p></div><button className="secondary-button" onClick={() => void loadUserProfiles()}><RefreshCw size={15}/> Atualizar lista</button></div>
+            <form className="admin-invite-card" onSubmit={inviteUser}>
+              <div className="admin-card-heading"><span className="admin-card-icon"><UserPlus size={20}/></span><div><h3>Adicionar usuário</h3><p>O usuário receberá um convite por e-mail para acessar a aplicação.</p></div></div>
+              <div className="admin-invite-fields"><label>E-mail do usuário<input type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="nome@empresa.com.br" required/></label><label>Perfil de acesso<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="viewer">Visualizador — somente consulta</option><option value="editor">Editor — pode alterar projetos</option><option value="admin">Administrador — acesso completo</option></select></label><button className="primary-button" type="submit" disabled={invitingUser || !inviteEmail.trim()}><Mail size={16}/>{invitingUser ? "Enviando convite…" : "Enviar convite"}</button></div>
+              <p className="admin-security-note"><ShieldCheck size={15}/> O convite é processado no servidor. A chave administrativa do Supabase não deve ficar no frontend.</p>
+            </form>
+            <section className="admin-users-list-card"><div className="admin-users-list-heading"><div><h3>Usuários cadastrados</h3><p>{userProfiles.length} perfil(is) encontrado(s)</p></div><span className="admin-total-badge"><Users size={15}/> {userProfiles.length}</span></div>
+              {userProfiles.length === 0 ? <div className="admin-empty-state"><Users size={30}/><strong>Nenhum usuário encontrado</strong><span>Atualize a lista ou envie um convite para adicionar o primeiro usuário.</span></div> : <div className="admin-users-table-wrap"><table className="admin-users-table"><thead><tr><th>Usuário</th><th>Perfil atual</th><th>Alterar permissão</th></tr></thead><tbody>{userProfiles.map(user=><tr key={user.id}><td><div className="admin-user-cell"><span className="admin-user-avatar">{(user.email || user.id).slice(0,1).toUpperCase()}</span><div><strong>{user.email || "E-mail não disponível"}</strong><small>ID: {user.id}</small></div></div></td><td><span className={`admin-role-pill role-${user.role}`}>{user.role === "admin" ? "Administrador" : user.role === "editor" ? "Editor" : "Visualizador"}</span></td><td><select aria-label={`Permissão para ${user.email || user.id}`} value={user.role} disabled={updatingUserId === user.id || user.id === session?.user.id} onChange={e=>void updateUserRole(user.id,e.target.value)}><option value="viewer">Visualizador</option><option value="editor">Editor</option><option value="admin">Administrador</option></select>{user.id === session?.user.id && <small className="admin-self-note">Seu próprio perfil não pode ser alterado aqui.</small>}</td></tr>)}</tbody></table></div>}
+            </section>
+            <div className="admin-permission-help"><h3>Perfis de acesso</h3><div><span className="admin-role-pill role-admin">Administrador</span><p>Gerencia usuários, permissões e todos os dados.</p></div><div><span className="admin-role-pill role-editor">Editor</span><p>Cria e altera clientes, projetos e cronogramas.</p></div><div><span className="admin-role-pill role-viewer">Visualizador</span><p>Consulta os dados sem realizar alterações.</p></div></div>
+          </section>}
+
           {selectedProjectId && projectModalMode === "details" && (() => {
             const selected=projects.find(p=>p.id===selectedProjectId);
             if(!selected) return null;
