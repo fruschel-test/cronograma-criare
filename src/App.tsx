@@ -407,7 +407,7 @@ function App() {
                 return <tr key={project.id}>
                   <td className="sheet-sticky project-col"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>
                   <td>{project.contract_number ?? "—"}</td>
-                  {stages.map(stage=>{
+                  {stages.map((stage, index)=>{
                     const value=stage.date || "";
                     const remaining=value?workdaysBetween(isoDate(new Date()),value):null;
                     const cls=!value?"sheet-empty":remaining!==null&&remaining<0?"sheet-overdue":remaining!==null&&remaining<=7?"sheet-soon":"sheet-ok";
