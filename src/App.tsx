@@ -44,7 +44,6 @@ function formatCountdown(date: string) {
   const today=isoDate(new Date()); const n=workdaysBetween(today,date);
   if(n===null) return "—"; if(n<0) return `${Math.abs(n)} dia(s) útil(eis) em atraso`; if(n===0) return "Vence hoje"; return `${n} dia(s) útil(eis)`;
 }
-function countdownClass(date: string) { if(!date) return ""; const n=workdaysBetween(isoDate(new Date()),date); return n!==null&&n<0?"timeline-overdue":n!==null&&n<=7?"timeline-soon":"timeline-ok"; }
 function readTimeline(project: Project): ManualTimeline { return ((project as Project & {timeline?: ManualTimeline}).timeline ?? {}); }
 type TimelineStage = { key: string; label: string; date: string | undefined; kind: "manual" | "auto"; rule?: string };
 function calculatedStages(manual: ManualTimeline): TimelineStage[] {
@@ -108,8 +107,6 @@ function App() {
   const [projectFilterId, setProjectFilterId] = useState<string>("all");
   const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
   const [timelineSaving, setTimelineSaving] = useState(false);
-  const [auditEntries, setAuditEntries] = useState<Array<{id:string; action:string; changed_at:string; actor_email:string|null; summary:string}>>([]);
-  const [auditLoading, setAuditLoading] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Array<{id:string; role:string; email:string|null}>>([]);
 
   const [showProjectForm, setShowProjectForm] = useState(false);
@@ -250,13 +247,9 @@ function App() {
     setSelectedProjectId(project.id);
     setProjectModalMode(mode);
     setTimelineDraft({ ...readTimeline(project) });
-    setAuditEntries([]);
-    setAuditLoading(true);
     setError(""); setNotice("");
     // O histórico de auditoria é opcional. Não consultar project_audit_log
     // até que a tabela seja criada no Supabase; abrir um projeto não deve falhar.
-    setAuditEntries([]);
-    setAuditLoading(false);
   }
   async function saveTimeline() {
     if (!supabase || !canEdit || !selectedProjectId) return;
