@@ -243,6 +243,14 @@ function App() {
     await loadData();
   }
 
+  useEffect(() => {
+    if (page === "projects" && selectedProjectId) {
+      requestAnimationFrame(() => {
+        document.getElementById("timeline-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [page, selectedProjectId]);
+
   async function openTimeline(project: Project) {
     setSelectedProjectId(project.id);
     setTimelineDraft({ ...readTimeline(project) });
@@ -256,8 +264,12 @@ function App() {
         .eq("project_id", project.id)
         .order("changed_at", { ascending: false })
         .limit(20);
-      if (auditError) setError(`Histórico: ${auditError.message}`);
-      else setAuditEntries((data ?? []) as typeof auditEntries);
+      if (auditError) {
+        // A falha do histórico não deve impedir a edição do cronograma.
+        setAuditEntries([]);
+      } else {
+        setAuditEntries((data ?? []) as typeof auditEntries);
+      }
     }
     setAuditLoading(false);
   }
@@ -519,7 +531,7 @@ function App() {
             const selected=projects.find(p=>p.id===selectedProjectId);
             if(!selected) return null;
             const stages=calculatedStages(timelineDraft);
-            return <section className="timeline-card">
+            return <section id="timeline-detail" className="timeline-card">
               <div className="timeline-header"><div><p className="eyebrow">CRONOGRAMA DETALHADO</p><h2>{selected.name}</h2><p className="muted">{selected.clients?.name ?? "Cliente não identificado"} · Contrato {selected.contract_number ?? "—"}</p></div><button className="secondary-button" onClick={()=>setSelectedProjectId(null)}>Fechar</button></div>
               <p className="timeline-note">As datas automáticas consideram dias úteis, excluindo sábados, domingos, feriados nacionais e o feriado estadual de 20 de setembro (RS). Feriados municipais não são considerados.</p>
               <div className="timeline-list">{stages.map((stage,index)=>{

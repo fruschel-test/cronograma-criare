@@ -861,3 +861,38 @@ tbody tr:hover{background:#fbfcfe}
   .dashboard-project-title { min-width:740px; }
   .dashboard-stage-panel { display:block; }
 }
+
+
+/* Correção de navegação: deixar o editor fácil de localizar após Abrir projeto */
+#timeline-detail {
+  scroll-margin-top: 18px;
+}
+.timeline-card {
+  margin-top: 18px;
+}
+
+/* Impede que as colunas das primeiras etapas fiquem esmagadas */
+.spreadsheet-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.spreadsheet-table {
+  table-layout: auto !important;
+  width: max-content !important;
+  min-width: 1500px !important;
+}
+.spreadsheet-table thead th:not(.project-col):not(.meta-column),
+.spreadsheet-table tbody td.sheet-date-cell {
+  min-width: 112px;
+  width: 112px;
+}
+.spreadsheet-table thead th.project-col,
+.spreadsheet-table tbody td.project-col {
+  min-width: 150px;
+  width: 150px;
+}
+.spreadsheet-table thead th.meta-column:nth-child(2),
+.spreadsheet-table tbody td.meta-column:nth-child(2) {
+  min-width: 80px;
+  width: 80px;
+}
