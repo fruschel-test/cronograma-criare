@@ -353,19 +353,103 @@ function App() {
         {error && <div className="error-banner">{error}</div>}
         {notice && <div className="success-banner">{notice}</div>}
 
-        {page === "dashboard" && <>
-          <div className="stats-grid">
-            <article className="stat-card"><span>Projetos cadastrados</span><strong>{projects.length}</strong></article>
-            <article className="stat-card"><span>Projetos ativos</span><strong>{projects.filter((p) => p.status === "ativo").length}</strong></article>
-            <article className="stat-card"><span>Prazos vencidos</span><strong className="danger-text">{projects.filter((p) => p.status === "ativo" && p.delivery_date && (daysUntil(p.delivery_date) ?? 0) < 0).length}</strong></article>
-            <article className="stat-card"><span>Clientes</span><strong>{clients.length}</strong></article>
-          </div>
-          <section className="table-card">
-            <div className="table-heading"><div><h2>Projetos recentes</h2><p className="muted">{projects.slice(0, 5).length} registro(s)</p></div><button className="secondary-button" onClick={() => setPage("projects")}>Ver cronogramas</button></div>
-            {projects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto cadastrado</strong><span>Cadastre um cliente e depois crie o primeiro projeto.</span><button className="secondary-button" onClick={() => setPage("clients")}>Ir para Clientes</button></div> :
-              <div className="table-scroll"><table><thead><tr><th>Projeto</th><th>Cliente</th><th>Contrato</th><th>Entrega prevista</th><th>Status</th></tr></thead><tbody>{projects.slice(0, 5).map((p) => <tr key={p.id}><td className="project-name">{p.name}</td><td>{p.clients?.name ?? "—"}</td><td>{p.contract_number ?? "—"}</td><td>{formatDate(p.delivery_date)}</td><td><span className={`status-pill status-${p.status}`}>{p.status}</span></td></tr>)}</tbody></table></div>}
-          </section>
-        </>}
+        {page === "dashboard" && (() => {
+          const focusProject = projects[0];
+          const focusStages = focusProject ? calculatedStages(readTimeline(focusProject)) : [];
+          const today = isoDate(new Date());
+          const datedStages = focusStages.filter(stage => Boolean(stage.date));
+          const completedStages = datedStages.filter(stage => (stage.date || "") <= today).length;
+          const nextStage = focusStages.find(stage => stage.date && stage.date >= today) ?? focusStages.find(stage => !stage.date);
+          const nextDateDays = nextStage?.date ? workdaysBetween(today, nextStage.date) : null;
+          const overdueProjects = projects.filter(project => project.status === "ativo" && project.delivery_date && (daysUntil(project.delivery_date) ?? 0) < 0).length;
+          const currentIndex = focusStages.findIndex(stage => stage.key === "orderPlaced");
+          const currentStageIndex = currentIndex >= 0 ? currentIndex : Math.max(0, completedStages - 1);
+          const stageName = (stage: TimelineStage | undefined) => stage?.label ?? "Aguardando data";
+          return <>
+            <div className="dashboard-kpis">
+              <article className="dashboard-kpi">
+                <span className="kpi-icon kpi-blue"><CalendarDays size={24}/></span>
+                <div><span>Projetos ativos</span><strong>{projects.filter(project => project.status === "ativo").length}</strong></div>
+              </article>
+              <article className="dashboard-kpi">
+                <span className="kpi-icon kpi-green"><ShieldCheck size={24}/></span>
+                <div><span>Etapas com data passada</span><strong>{completedStages}/{focusStages.length || 12}</strong><div className="kpi-progress"><i style={{width:`${Math.min(100, Math.round(completedStages / Math.max(1, focusStages.length) * 100))}%`}}/></div></div>
+              </article>
+              <article className="dashboard-kpi">
+                <span className="kpi-icon kpi-orange"><CalendarClock size={24}/></span>
+                <div><span>Próxima etapa</span><strong className="kpi-orange-text">{nextDateDays === null ? "—" : nextDateDays < 0 ? `${Math.abs(nextDateDays)} dias em atraso` : nextDateDays === 0 ? "Hoje" : `${nextDateDays} dias úteis`}</strong><small>{stageName(nextStage)}{nextStage?.date ? ` · ${formatDate(nextStage.date)}` : ""}</small></div>
+              </article>
+              <article className="dashboard-kpi">
+                <span className="kpi-icon kpi-red"><span className="warning-mark">!</span></span>
+                <div><span>Atrasos</span><strong className="kpi-red-text">{overdueProjects}</strong><small>projetos com entrega vencida</small></div>
+              </article>
+            </div>
+
+            {!focusProject ? <section className="dashboard-project-card empty-dashboard">
+              <div className="empty-state"><CalendarClock size={32}/><strong>Nenhum projeto cadastrado</strong><span>Cadastre um cliente e crie seu primeiro projeto para visualizar o acompanhamento de etapas.</span><button className="primary-button" onClick={() => setPage("projects")}>Abrir cronogramas</button></div>
+            </section> : <div className="dashboard-detail-layout">
+              <section className="dashboard-project-card">
+                <div className="dashboard-project-title">
+                  <div><h2>{focusProject.name}</h2><p>{focusProject.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {focusProject.contract_number ?? "—"}</span><span><Users size={15}/>{focusProject.clients?.name ?? "Cliente"}</span></div></div>
+                  <span className={`status-pill status-${focusProject.status}`}>{focusProject.status}</span>
+                </div>
+
+                <div className="dashboard-sector-groups">
+                  <div className="sector-band band-commercial" style={{gridColumn:"span 4"}}>COMERCIAL</div>
+                  <div className="sector-band band-conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</div>
+                  <div className="sector-band band-commercial" style={{gridColumn:"span 1"}}>COMERCIAL</div>
+                  <div className="sector-band band-logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</div>
+                </div>
+                <div className="dashboard-stage-arrows">
+                  {focusStages.map((stage,index) => {
+                    const sector = stageSectorClass(index);
+                    const stageDate = stage.date || "";
+                    const isPast = Boolean(stageDate && stageDate < today);
+                    const isCurrent = index === currentStageIndex;
+                    return <button key={stage.key} className={`dashboard-stage ${sector} ${isPast ? "stage-complete" : ""} ${isCurrent ? "stage-current" : ""}`} onClick={() => { setPage("projects"); void openTimeline(focusProject); }} title={`${index+1}. ${stage.label}`}>
+                      <span className="dashboard-arrow-number">{index+1}</span>
+                      <span className="dashboard-stage-label">{stage.label}</span>
+                    </button>;
+                  })}
+                </div>
+
+                <div className="dashboard-legend"><span><i className="legend-dot done"/>Concluída por data</span><span><i className="legend-dot current"/>Etapa em foco</span><span><i className="legend-dot pending"/>Pendente</span></div>
+
+                <div className="dashboard-stage-table-wrap">
+                  <table className="dashboard-stage-table"><thead><tr><th>Etapa</th><th>Descrição</th><th>Data</th><th>Dias úteis (decorridos)</th><th>Status</th></tr></thead>
+                    <tbody>{focusStages.map((stage,index) => {
+                      const value = stage.date || "";
+                      const elapsed = value ? workdaysBetween(value, today) : null;
+                      const state = !value ? "Pendente" : value < today ? "Data passada" : value === today ? "Hoje" : "Próxima etapa";
+                      return <tr key={stage.key} className={index === currentStageIndex ? "focused-stage-row" : ""}>
+                        <td><span className={`mini-stage-number ${stageSectorClass(index)}`}>{index+1}</span></td>
+                        <td>{stage.label}</td><td>{formatDate(value)}</td><td>{elapsed === null ? "—" : `${Math.abs(elapsed)} dias`}</td>
+                        <td><span className={`stage-status status-${!value ? "pending" : value < today ? "done" : value === today ? "today" : "next"}`}>{state}</span></td>
+                      </tr>;
+                    })}</tbody>
+                  </table>
+                </div>
+              </section>
+
+              <aside className="dashboard-stage-panel">
+                <h3>Detalhes da etapa</h3>
+                <p className="panel-label">Progresso por datas</p>
+                <div className="panel-progress-line"><strong>{completedStages} de {focusStages.length} etapas</strong><b>{Math.round(completedStages / Math.max(1,focusStages.length) * 100)}%</b></div>
+                <div className="kpi-progress panel-progress"><i style={{width:`${Math.min(100, Math.round(completedStages / Math.max(1,focusStages.length) * 100))}%`}}/></div>
+                <div className="panel-divider"/>
+                <p className="panel-label">Etapa em foco</p>
+                <div className="panel-stage-item"><span className="panel-stage-icon panel-green">✓</span><div><strong>Etapa {currentStageIndex+1}</strong><p>{stageName(focusStages[currentStageIndex])}</p><small>{formatDate(focusStages[currentStageIndex]?.date)}</small><small>{focusStages[currentStageIndex]?.date ? formatCountdown(focusStages[currentStageIndex].date!) : "Aguardando data"}</small></div></div>
+                <div className="panel-divider"/>
+                <p className="panel-label">Próxima etapa</p>
+                <div className="panel-stage-item"><span className="panel-stage-icon panel-blue">›</span><div><strong>Etapa {nextStage ? focusStages.findIndex(stage => stage.key === nextStage.key)+1 : "—"}</strong><p>{stageName(nextStage)}</p><small>{formatDate(nextStage?.date)}</small><small>{nextStage?.date ? formatCountdown(nextStage.date) : "Aguardando data"}</small></div></div>
+                <div className="panel-divider"/>
+                <p className="panel-label">Próxima seguinte</p>
+                <div className="panel-stage-item"><span className="panel-stage-icon panel-gray">›</span><div><strong>Etapa {nextStage ? Math.min(12, focusStages.findIndex(stage => stage.key === nextStage.key)+2) : "—"}</strong><p>{stageName(nextStage ? focusStages[focusStages.findIndex(stage => stage.key === nextStage.key)+1] : undefined)}</p><small>{formatDate(nextStage ? focusStages[focusStages.findIndex(stage => stage.key === nextStage.key)+1]?.date : undefined)}</small></div></div>
+                <button className="dashboard-open-button" onClick={() => { setPage("projects"); void openTimeline(focusProject); }}><Pencil size={16}/> Abrir projeto</button>
+              </aside>
+            </div>}
+          </>;
+        })()}
 
         {page === "clients" && <>
           {showClientForm && <form className="new-project-form" onSubmit={saveClient}>
@@ -399,11 +483,21 @@ function App() {
           <section className="table-card">
             <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
             {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> :
-              <div className="spreadsheet-wrap"><table className="spreadsheet-table"><thead><tr>
-                <th className="sheet-sticky project-col meta-column">Projeto / cliente</th><th className="meta-column">Contrato</th>
+              <div className="spreadsheet-wrap"><table className="spreadsheet-table"><thead>
+              <tr className="sector-group-row">
+                <th className="sheet-sticky project-col meta-column" rowSpan={2}>Projeto / cliente</th>
+                <th className="meta-column" rowSpan={2}>Contrato</th>
+                <th className="sector-group sector-comercial" colSpan={4}>COMERCIAL</th>
+                <th className="sector-group sector-conferencia" colSpan={4}>CONFERÊNCIA</th>
+                <th className="sector-group sector-comercial" colSpan={1}>COMERCIAL</th>
+                <th className="sector-group sector-logistica" colSpan={3}>LOGÍSTICA</th>
+                <th className="meta-column" rowSpan={2}>Status</th>
+                <th className="sheet-action-col meta-column" rowSpan={2}>Editar</th>
+              </tr>
+              <tr className="stage-heading-row">
                 {calculatedStages({}).map((stage,index)=><th key={stage.key} className={stageSectorClass(index)} title={stage.label}><span className="stage-heading-number">{index+1}</span>{stage.label}</th>)}
-                <th className="meta-column">Status</th><th className="sheet-action-col meta-column">Editar</th>
-              </tr></thead><tbody>{filteredProjects.map(project => {
+              </tr>
+              </thead><tbody>{filteredProjects.map(project => {
                 const stages=calculatedStages(readTimeline(project));
                 return <tr key={project.id}>
                   <td className="sheet-sticky project-col meta-column"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>

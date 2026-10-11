@@ -712,3 +712,152 @@ tbody tr:hover{background:#fbfcfe}
 .spreadsheet-table thead th.sector-logistica .stage-heading-number {
   color: #ffffff !important;
 }
+
+
+/* Cabeçalho agrupado por setor acima das etapas */
+.spreadsheet-table thead .sector-group-row th.sector-group {
+  height: 30px;
+  padding: 7px 5px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: #ffffff !important;
+  border-right: 1px solid rgba(255,255,255,.3);
+  border-bottom: 1px solid #ffffff;
+}
+
+.spreadsheet-table thead .sector-group-row th.sector-comercial {
+  background: #0070C0 !important;
+}
+.spreadsheet-table thead .sector-group-row th.sector-conferencia {
+  background: #B45F06 !important;
+}
+.spreadsheet-table thead .sector-group-row th.sector-logistica {
+  background: #00B050 !important;
+}
+
+.spreadsheet-table thead .stage-heading-row th {
+  height: 112px;
+  vertical-align: top;
+}
+
+.spreadsheet-table thead .stage-heading-row .stage-heading-number {
+  margin-bottom: 7px !important;
+}
+
+@media (max-width: 760px) {
+  .spreadsheet-table thead .sector-group-row th.sector-group {
+    font-size: 10px;
+    letter-spacing: .03em;
+  }
+}
+
+
+/* DASHBOARD DE ACOMPANHAMENTO — baseado na prévia aprovada */
+.app-shell { background:#f4f6f9; }
+.topbar { background:#050505; color:#fff; border-bottom-color:#252525; }
+.topbar .brand-logo { max-width:160px; max-height:46px; object-fit:contain; }
+.topbar .user-email { color:#d1d5db; }
+.topbar .icon-button { background:#22252a; color:#fff; }
+.layout { display:flex; min-height:calc(100vh - 72px); }
+.sidebar { width:204px; flex:0 0 204px; background:#050505; color:#f8fafc; padding:22px 10px 18px; display:flex; flex-direction:column; gap:8px; border-right:1px solid #222; }
+.sidebar-label { color:#9ca3af; font-size:10px; letter-spacing:.14em; font-weight:700; padding:0 12px; margin:0 0 10px; }
+.nav-item { width:100%; border:0; display:flex; align-items:center; gap:12px; padding:13px 12px; border-radius:9px; background:transparent; color:#d1d5db; text-align:left; font-size:13px; }
+.nav-item:hover { background:#1c1c1c; color:#fff; }
+.nav-item.active { background:#34383e; color:#fff; }
+.nav-count { margin-left:auto; font-size:11px; color:#bfc5cd; }
+.sidebar-bottom { margin-top:auto; display:flex; gap:8px; align-items:flex-start; padding:14px 10px 0; color:#9ca3af; font-size:10px; line-height:1.4; }
+.content { min-width:0; flex:1; max-width:none; padding:24px clamp(16px,1.6vw,28px) 36px; }
+.page-heading { margin-bottom:20px; }
+.page-heading h1 { font-size:clamp(1.65rem,2.1vw,2.25rem); color:#0f172a; }
+.dashboard-kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:14px; }
+.dashboard-kpi { display:flex; align-items:center; gap:14px; min-width:0; background:#fff; border:1px solid #e3e9f1; border-radius:12px; padding:16px; box-shadow:0 2px 8px #0f172a05; }
+.kpi-icon { display:grid; place-items:center; width:54px; height:54px; flex:0 0 54px; border-radius:50%; }
+.kpi-blue { background:#e5efff; color:#1763d7; }
+.kpi-green { background:#dff7e9; color:#078447; }
+.kpi-orange { background:#ffead2; color:#c45a00; }
+.kpi-red { background:#ffe2e2; color:#dc2626; }
+.dashboard-kpi div { min-width:0; display:flex; flex-direction:column; gap:4px; }
+.dashboard-kpi div>span { color:#667085; font-size:12px; }
+.dashboard-kpi strong { color:#101828; font:800 25px Manrope,sans-serif; line-height:1.1; }
+.dashboard-kpi small { color:#738096; font-size:11px; line-height:1.4; }
+.kpi-orange-text { color:#bd5500 !important; font-size:21px !important; }
+.kpi-red-text { color:#dc2626 !important; }
+.warning-mark { display:grid; place-items:center; border:2px solid currentColor; border-radius:50%; width:26px; height:26px; font-weight:800; }
+.kpi-progress { width:100%; height:9px; border-radius:99px; background:#e7ebf0; overflow:hidden; margin-top:3px; }
+.kpi-progress i { display:block; height:100%; border-radius:99px; background:#13a568; }
+.dashboard-detail-layout { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:12px; align-items:stretch; }
+.dashboard-project-card,.dashboard-stage-panel { background:#fff; border:1px solid #e3e9f1; border-radius:12px; min-width:0; box-shadow:0 2px 8px #0f172a05; }
+.dashboard-project-card { padding:16px; }
+.dashboard-project-title { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+.dashboard-project-title h2 { font-size:23px; color:#101828; margin:0 0 3px; }
+.dashboard-project-title>div>p { color:#667085; margin:0 0 10px; }
+.project-meta { display:flex; flex-wrap:wrap; gap:18px; color:#526078; font-size:12px; }
+.project-meta span { display:flex; align-items:center; gap:6px; }
+.dashboard-sector-groups { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:3px; margin-bottom:3px; }
+.sector-band { text-align:center; color:#fff; border-radius:4px; padding:6px 2px; font-size:10px; font-weight:800; letter-spacing:.04em; }
+.band-commercial { background:#0865c8; }
+.band-conference { background:#b85a00; }
+.band-logistics { background:#08a85a; }
+.dashboard-stage-arrows { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:0; margin-bottom:12px; }
+.dashboard-stage { min-width:0; border:0; background:transparent; padding:0 0 0 0; display:flex; flex-direction:column; align-items:stretch; text-align:center; color:#253044; }
+.dashboard-arrow-number { display:flex; align-items:center; justify-content:center; min-width:0; height:42px; margin-right:-1px; clip-path:polygon(0 0,76% 0,100% 50%,76% 100%,0 100%,12% 50%); color:#fff; font-size:16px; font-weight:800; background:#1767c7; }
+.dashboard-stage.sector-comercial .dashboard-arrow-number { background:#0865c8; }
+.dashboard-stage.sector-conferencia .dashboard-arrow-number { background:#b85a00; }
+.dashboard-stage.sector-logistica .dashboard-arrow-number { background:#08a85a; }
+.dashboard-stage.stage-complete .dashboard-arrow-number { filter:saturate(.85); }
+.dashboard-stage.stage-current .dashboard-arrow-number { outline:2px solid #8ab7ff; outline-offset:-3px; }
+.dashboard-stage-label { padding:6px 3px 0; font-size:10px; line-height:1.25; overflow-wrap:anywhere; }
+.dashboard-legend { display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin:14px 0 10px; color:#667085; font-size:11px; }
+.dashboard-legend span { display:flex; align-items:center; gap:6px; }
+.legend-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#98a2b3; }
+.legend-dot.done { background:#13a568; }.legend-dot.current { background:#1767e8; }.legend-dot.pending { background:#98a2b3; }
+.dashboard-stage-table-wrap { overflow-x:auto; border:1px solid #e4e9f0; border-radius:9px; }
+.dashboard-stage-table { width:100%; min-width:590px; border-collapse:collapse; font-size:11px; }
+.dashboard-stage-table th { background:#f0f3f7; color:#5c6677; text-transform:none; letter-spacing:0; font-size:11px; padding:8px 10px; white-space:nowrap; }
+.dashboard-stage-table td { padding:5px 10px; border-bottom:1px solid #e9edf2; white-space:normal; }
+.dashboard-stage-table tbody tr:last-child td { border-bottom:0; }
+.dashboard-stage-table tbody tr.focused-stage-row { background:#f5f9ff; font-weight:600; }
+.mini-stage-number { display:inline-grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#168b54; color:#fff; font-weight:800; }
+.mini-stage-number.sector-comercial { background:#0865c8; }.mini-stage-number.sector-conferencia { background:#b85a00; }.mini-stage-number.sector-logistica { background:#08a85a; }
+.stage-status { display:inline-flex; padding:4px 8px; border-radius:99px; font-size:10px; white-space:nowrap; }
+.status-done { background:#def7e8; color:#087443; }.status-next { background:#e5efff; color:#155bd4; }.status-pending { background:#eef0f3; color:#667085; }.status-today { background:#fff0d9; color:#9a4c00; }
+.dashboard-stage-panel { padding:18px; }
+.dashboard-stage-panel h3 { font:800 17px Manrope,sans-serif; margin:0 0 18px; color:#101828; }
+.panel-label { color:#657086; font-size:12px; margin:0 0 8px; }
+.panel-progress-line { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.panel-progress-line strong { font:800 19px Manrope,sans-serif; color:#111827; }
+.panel-progress-line b { font:800 19px Manrope,sans-serif; color:#1767e8; }
+.panel-progress { height:10px; margin:10px 0 0; }
+.panel-divider { height:1px; background:#e7ebf0; margin:18px 0; }
+.panel-stage-item { display:flex; align-items:flex-start; gap:12px; }
+.panel-stage-icon { display:grid; place-items:center; flex:0 0 31px; width:31px; height:31px; border-radius:50%; color:#fff; font-size:24px; font-weight:700; line-height:1; }
+.panel-green { background:#11945a; }.panel-blue { background:#1767e8; }.panel-gray { background:#98a2b3; }
+.panel-stage-item strong { font-size:14px; color:#101828; }
+.panel-stage-item p { font-size:12px; color:#475467; margin:4px 0 7px; }
+.panel-stage-item small { display:block; color:#667085; font-size:11px; margin-top:3px; }
+.dashboard-open-button { display:flex; justify-content:center; align-items:center; gap:8px; width:100%; border:0; border-radius:8px; margin-top:20px; padding:12px; background:#34383e; color:#fff; font-weight:700; }
+.dashboard-open-button:hover { background:#1f2328; }
+.empty-dashboard { min-height:260px; }
+@media(max-width:1180px) {
+  .dashboard-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .dashboard-detail-layout { grid-template-columns:minmax(0,1fr); }
+  .dashboard-stage-panel { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; }
+  .dashboard-stage-panel h3,.panel-divider { grid-column:1/-1; }
+}
+@media(max-width:760px) {
+  .layout { display:block; }
+  .sidebar { width:100%; flex-direction:row; overflow-x:auto; padding:8px; gap:5px; }
+  .sidebar-label,.sidebar-bottom { display:none; }
+  .nav-item { flex:0 0 auto; width:auto; white-space:nowrap; padding:10px; }
+  .content { padding:18px 12px 28px; }
+  .dashboard-kpis { grid-template-columns:1fr; }
+  .dashboard-kpi { padding:12px; }
+  .dashboard-project-card { padding:10px; }
+  .dashboard-sector-groups,.dashboard-stage-arrows { min-width:760px; }
+  .dashboard-project-card { overflow-x:auto; }
+  .dashboard-project-title { min-width:740px; }
+  .dashboard-stage-panel { display:block; }
+}
