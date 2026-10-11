@@ -104,6 +104,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState<Page>("dashboard");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [projectFilterId, setProjectFilterId] = useState<string>("all");
   const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
   const [timelineSaving, setTimelineSaving] = useState(false);
   const [auditEntries, setAuditEntries] = useState<Array<{id:string; action:string; changed_at:string; actor_email:string|null; summary:string}>>([]);
@@ -285,7 +286,7 @@ function App() {
 
   const filteredProjects = projects.filter((project) => {
     const haystack = `${project.name} ${project.contract_number ?? ""} ${project.clients?.name ?? ""}`.toLocaleLowerCase("pt-BR");
-    return haystack.includes(search.toLocaleLowerCase("pt-BR"));
+    return haystack.includes(search.toLocaleLowerCase("pt-BR")) && (projectFilterId === "all" || project.id === projectFilterId);
   });
   const filteredClients = clients.filter((client) =>
     `${client.name} ${client.email ?? ""} ${client.phone ?? ""}`.toLocaleLowerCase("pt-BR").includes(search.toLocaleLowerCase("pt-BR"))
@@ -348,101 +349,38 @@ function App() {
         {notice && <div className="success-banner">{notice}</div>}
 
         {page === "dashboard" && (() => {
-          const focusProject = projects.find(project => project.id === selectedProjectId) ?? projects[0];
-          const focusStages = focusProject ? calculatedStages(readTimeline(focusProject)) : [];
           const today = isoDate(new Date());
-          const datedStages = focusStages.filter(stage => Boolean(stage.date));
-          // A etapa só é considerada concluída quando sua data já passou.
-          const completedStages = datedStages.filter(stage => (stage.date || "") < today).length;
-          const nextDateIndex = focusStages.findIndex(stage => Boolean(stage.date) && (stage.date || "") >= today);
-          const firstUndatedIndex = focusStages.findIndex(stage => !stage.date);
-          const currentStageIndex = nextDateIndex >= 0 ? nextDateIndex : firstUndatedIndex >= 0 ? firstUndatedIndex : Math.max(0, focusStages.length - 1);
-          const nextStageIndex = Math.min(focusStages.length - 1, currentStageIndex + 1);
-          const overdueProjects = projects.filter(project => project.status === "ativo" && project.delivery_date && (daysUntil(project.delivery_date) ?? 0) < 0).length;
-          const stageName = (stage: TimelineStage | undefined) => stage?.label ?? "Aguardando data";
+          const activeProjects = projects.filter(project => project.status === "ativo");
+          const completedProjects = projects.filter(project => project.status === "concluido" || project.status === "concluído");
+          const overdueProjectsList = activeProjects.filter(project => project.delivery_date && (daysUntil(project.delivery_date) ?? 0) < 0);
+          const allStages = projects.flatMap(project => calculatedStages(readTimeline(project)).map((stage,index) => ({...stage, project, index})));
+          const completedStages = allStages.filter(stage => stage.date && stage.date < today).length;
+          const datedUpcoming = allStages.filter(stage => stage.date && stage.date >= today).sort((a,b) => (a.date || "").localeCompare(b.date || "")).slice(0,5);
+          const byClient = clients.map(client => ({name:client.name,count:projects.filter(p=>p.client_id===client.id).length})).filter(x=>x.count>0).sort((a,b)=>b.count-a.count).slice(0,5);
+          const sectorCounts = [
+            {name:"Comercial",count:allStages.filter(s=>[0,1,2,3,8].includes(s.index)).length},
+            {name:"Conferência",count:allStages.filter(s=>[4,5,6,7].includes(s.index)).length},
+            {name:"Logística",count:allStages.filter(s=>[9,10,11].includes(s.index)).length}
+          ];
+          const statusCount = [
+            {name:"Ativos",count:activeProjects.length,cls:"green"},
+            {name:"Concluídos",count:completedProjects.length,cls:"blue"},
+            {name:"Em atraso",count:overdueProjectsList.length,cls:"red"}
+          ];
           return <>
-            <div className="dashboard-kpis">
-              <article className="dashboard-kpi"><span className="kpi-icon kpi-blue"><CalendarDays size={24}/></span><div><span>Total de projetos</span><strong>{projects.length}</strong></div></article>
-              <article className="dashboard-kpi"><span className="kpi-icon kpi-green"><Users size={24}/></span><div><span>Total de clientes</span><strong>{clients.length}</strong></div></article>
-              <article className="dashboard-kpi"><span className="kpi-icon kpi-orange"><CalendarClock size={24}/></span><div><span>Projetos ativos</span><strong>{projects.filter(project => project.status === "ativo").length}</strong></div></article>
-              <article className="dashboard-kpi"><span className="kpi-icon kpi-red"><span className="warning-mark">!</span></span><div><span>Atrasos</span><strong className="kpi-red-text">{overdueProjects}</strong><small>projetos com entrega vencida</small></div></article>
+            <div className="dashboard-kpis dashboard-kpis-analytics">
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-blue"><CalendarDays size={24}/></span><div><span>Projetos totais</span><strong>{projects.length}</strong><small>{activeProjects.length} ativos · {completedProjects.length} concluídos</small></div></article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-green"><Check size={24}/></span><div><span>Etapas concluídas</span><strong>{completedStages}/{allStages.length}</strong><small>{allStages.length ? Math.round(completedStages/allStages.length*100) : 0}% por datas informadas</small><div className="kpi-progress"><i style={{width:`${allStages.length?Math.round(completedStages/allStages.length*100):0}%`}}/></div></div></article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-orange"><CalendarClock size={24}/></span><div><span>Próximas etapas</span><strong>{datedUpcoming.length}</strong><small>com data futura ou de hoje</small></div></article>
+              <article className="dashboard-kpi"><span className="kpi-icon kpi-red"><span className="warning-mark">!</span></span><div><span>Projetos em atraso</span><strong className="kpi-red-text">{overdueProjectsList.length}</strong><small>com entrega prevista vencida</small></div></article>
             </div>
-            {!focusProject ? <section className="dashboard-project-card empty-dashboard">
-              <div className="empty-state"><CalendarClock size={32}/><strong>Nenhum projeto cadastrado</strong><span>Cadastre um cliente e crie seu primeiro projeto para visualizar o acompanhamento de etapas.</span><button className="primary-button" onClick={() => setPage("projects")}>Abrir cronogramas</button></div>
-            </section> : <div className="dashboard-detail-layout">
-              <section className="dashboard-project-card">
-                <div className="dashboard-project-title">
-                  <div><h2>{focusProject.name}</h2><p>{focusProject.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {focusProject.contract_number ?? "—"}</span><span><Users size={15}/>{focusProject.clients?.name ?? "Cliente"}</span></div></div>
-                  <span className={`status-pill status-${focusProject.status}`}>{focusProject.status}</span>
-                </div>
-
-                <div className="dashboard-sector-groups">
-                  <div className="sector-band band-commercial" style={{gridColumn:"span 4"}}>COMERCIAL</div>
-                  <div className="sector-band band-conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</div>
-                  <div className="sector-band band-commercial" style={{gridColumn:"span 1"}}>COMERCIAL</div>
-                  <div className="sector-band band-logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</div>
-                </div>
-                <div className="dashboard-stage-arrows">
-                  {focusStages.map((stage,index) => {
-                    const sector = stageSectorClass(index);
-                    const stageDate = stage.date || "";
-                    const isPast = Boolean(stageDate && stageDate < today);
-                    const isCurrent = index === currentStageIndex;
-                    return <button key={stage.key} className={`dashboard-stage ${sector} ${isPast ? "stage-complete" : ""} ${isCurrent ? "stage-current" : ""}`} onClick={() => { void openTimeline(focusProject); }} title={`${index+1}. ${stage.label}`}>
-                      <span className="dashboard-arrow-number">{index+1}</span>
-                      <span className="dashboard-stage-label">{stage.label}</span>
-                    </button>;
-                  })}
-                </div>
-
-                <div className="dashboard-legend"><span><i className="legend-dot done"/>Concluída por data</span><span><i className="legend-dot current"/>Etapa em foco</span><span><i className="legend-dot pending"/>Pendente</span></div>
-
-                <div className="dashboard-stage-table-wrap">
-                  <table className="dashboard-stage-table"><thead><tr><th>Etapa</th><th>Descrição</th><th>Data</th><th>Dias úteis (decorridos)</th><th>Status</th></tr></thead>
-                    <tbody>{focusStages.map((stage,index) => {
-                      const value = stage.date || "";
-                      const elapsed = value ? workdaysBetween(value, today) : null;
-                      const state = !value ? "Pendente" : value < today ? "Data passada" : value === today ? "Hoje" : "Próxima etapa";
-                      return <tr key={stage.key} className={index === currentStageIndex ? "focused-stage-row" : ""}>
-                        <td><span className={`mini-stage-number ${stageSectorClass(index)}`}>{index+1}</span></td>
-                        <td>{stage.label}</td><td>{formatDate(value)}</td><td>{elapsed === null ? "—" : `${Math.abs(elapsed)} dias`}</td>
-                        <td><span className={`stage-status status-${!value ? "pending" : value < today ? "done" : value === today ? "today" : "next"}`}>{state}</span></td>
-                      </tr>;
-                    })}</tbody>
-                  </table>
-                </div>
-              </section>
-
-              <aside className="dashboard-stage-panel">
-                <h3>Detalhes da etapa</h3>
-                <p className="panel-label">Progresso por datas</p>
-                <div className="panel-progress-line"><strong>{completedStages} de {focusStages.length} etapas</strong><b>{Math.round(completedStages / Math.max(1,focusStages.length) * 100)}%</b></div>
-                <div className="kpi-progress panel-progress"><i style={{width:`${Math.min(100, Math.round(completedStages / Math.max(1,focusStages.length) * 100))}%`}}/></div>
-                <div className="panel-divider"/>
-                <p className="panel-label">Etapa em foco</p>
-                <div className="panel-stage-item"><span className="panel-stage-icon panel-green">✓</span><div><strong>Etapa {currentStageIndex+1}</strong><p>{stageName(focusStages[currentStageIndex])}</p><small>{formatDate(focusStages[currentStageIndex]?.date)}</small><small>{focusStages[currentStageIndex]?.date ? formatCountdown(focusStages[currentStageIndex].date!) : "Aguardando data"}</small></div></div>
-                <div className="panel-divider"/>
-                <p className="panel-label">Próxima etapa</p>
-                <div className="panel-stage-item"><span className="panel-stage-icon panel-blue">›</span><div><strong>Etapa {focusStages.length ? nextStageIndex + 1 : "—"}</strong><p>{stageName(focusStages[nextStageIndex])}</p><small>{formatDate(focusStages[nextStageIndex]?.date)}</small><small>{focusStages[nextStageIndex]?.date ? formatCountdown(focusStages[nextStageIndex].date!) : "Aguardando data"}</small></div></div>
-                <div className="panel-divider"/>
-                <p className="panel-label">Próxima seguinte</p>
-                <div className="panel-stage-item"><span className="panel-stage-icon panel-gray">›</span><div><strong>Etapa {focusStages.length ? Math.min(focusStages.length, nextStageIndex + 2) : "—"}</strong><p>{stageName(focusStages[nextStageIndex + 1])}</p><small>{formatDate(focusStages[nextStageIndex + 1]?.date)}</small></div></div>
-                <button className="dashboard-open-button" onClick={() => { void openTimeline(focusProject); }}><Pencil size={16}/> Abrir projeto</button>
-              </aside>
-            </div>}
-            <section className="projects-timeline-list dashboard-all-projects">
-              <div className="table-heading"><div><h2>Cronogramas de todos os projetos</h2><p className="muted">{projects.length} projeto(s) · selecione uma linha para ver os detalhes</p></div></div>
-              {projects.length === 0 ? <div className="empty-state">Nenhum projeto cadastrado.</div> : projects.map(project => {
-                const stages = calculatedStages(readTimeline(project));
-                const todayDate = isoDate(new Date());
-                const nextIndex = stages.findIndex(stage => stage.date && stage.date >= todayDate);
-                return <article className="dashboard-project-card project-timeline-card" key={`dashboard-${project.id}`}>
-                  <div className="dashboard-project-title"><div><h2>{project.name}</h2><p>{project.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {project.contract_number ?? "—"}</span><span><Users size={15}/>{project.clients?.name ?? "Cliente"}</span></div></div><div className="project-card-actions"><span className={`status-pill status-${project.status}`}>{project.status}</span><button className="secondary-button compact-button" onClick={() => void openTimeline(project)}><Pencil size={14}/> Abrir projeto</button></div></div>
-                  <div className="project-stage-scroll"><div className="dashboard-sector-groups"><span className="sector-band band-commercial" style={{gridColumn:"span 4"}}>COMERCIAL</span><span className="sector-band band-conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</span><span className="sector-band band-commercial" style={{gridColumn:"span 1"}}>COMERCIAL</span><span className="sector-band band-logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</span></div>
-                  <div className="dashboard-stage-arrows">{stages.map((stage,index)=>{const done=Boolean(stage.date && stage.date < todayDate);const current=index===nextIndex;return <button key={stage.key} className={`dashboard-stage ${stageSectorClass(index)} ${done?"stage-complete":""} ${current?"stage-current":""}`} onClick={() => void openTimeline(project)} title={`${index+1}. ${stage.label}${stage.date?` — ${formatDate(stage.date)}`:""}`}><span className="dashboard-arrow-number">{index+1}</span><span className="dashboard-stage-label">{stage.label}</span><span className="project-stage-date">{formatDate(stage.date)}</span><small className="project-stage-countdown">{stage.date?formatCountdown(stage.date):"Sem data"}</small></button>})}</div></div>
-                </article>;
-              })}
-            </section>
+            <div className="dashboard-analytics-grid">
+              <section className="analytics-card"><h2>Status dos projetos</h2><div className="analytics-status-list">{statusCount.map(item=><div className="analytics-status-row" key={item.name}><i className={`analytics-dot ${item.cls}`}/><span>{item.name}</span><strong>{item.count}</strong><small>{projects.length?Math.round(item.count/projects.length*100):0}%</small></div>)}</div><div className="analytics-stacked-bar">{statusCount.map(item=><i key={item.name} className={item.cls} style={{width:`${projects.length?item.count/projects.length*100:0}%`}}/>)}</div></section>
+              <section className="analytics-card"><h2>Etapas por setor</h2>{sectorCounts.map(item=><div className="analytics-bar-row" key={item.name}><span>{item.name}</span><div className="analytics-bar-track"><i style={{width:`${allStages.length?item.count/allStages.length*100:0}%`}}/></div><strong>{item.count}</strong></div>)}<p className="muted analytics-footnote">Distribuição das {allStages.length} etapas dos projetos cadastrados.</p></section>
+              <section className="analytics-card"><div className="analytics-card-heading"><h2>Próximas etapas</h2><button className="text-button" onClick={()=>setPage("projects")}>Ver cronogramas →</button></div>{datedUpcoming.length===0?<p className="muted">Nenhuma etapa com data futura cadastrada.</p>:<div className="upcoming-list">{datedUpcoming.map((item,i)=><button key={`${item.project.id}-${item.key}`} className="upcoming-row" onClick={()=>void openTimeline(item.project)}><i className={`analytics-dot ${i===0?"green":i===1?"orange":"blue"}`}/><span className="upcoming-date">{formatDate(item.date)}</span><span className="upcoming-description"><strong>{item.label}</strong><small>{item.project.name} · {item.project.clients?.name ?? "Cliente"}</small></span></button>)}</div>}</section>
+              <section className="analytics-card"><h2>Projetos por cliente</h2>{byClient.length===0?<p className="muted">Nenhum projeto vinculado a clientes.</p>:byClient.map(item=><div className="analytics-bar-row" key={item.name}><span title={item.name}>{item.name}</span><div className="analytics-bar-track"><i style={{width:`${Math.max(5,item.count/Math.max(...byClient.map(x=>x.count))*100)}%`}}/></div><strong>{item.count}</strong></div>)}</section>
+              <section className="analytics-card analytics-wide"><div className="analytics-card-heading"><h2>Projetos em destaque</h2><button className="text-button" onClick={()=>setPage("projects")}>Ver todos →</button></div><div className="analytics-project-table-wrap"><table className="analytics-project-table"><thead><tr><th>Projeto / Cliente</th><th>Contrato</th><th>Etapas com data</th><th>Progresso</th><th>Entrega prevista</th><th>Status</th></tr></thead><tbody>{projects.slice(0,8).map(project=>{const stages=calculatedStages(readTimeline(project));const done=stages.filter(s=>s.date&&s.date<today).length;const pct=Math.round(done/Math.max(1,stages.length)*100);return <tr key={project.id}><td><strong>{project.name}</strong><small>{project.clients?.name??"Cliente não identificado"}</small></td><td>{project.contract_number??"—"}</td><td>{stages.filter(s=>s.date).length}/{stages.length}</td><td><div className="table-progress"><i style={{width:`${pct}%`}}/></div><small>{pct}%</small></td><td>{formatDate(project.delivery_date??"")}</td><td><span className={`status-pill status-${project.status}`}>{project.status}</span></td></tr>})}</tbody></table></div></section>
+            </div>
           </>;
         })()}
 
@@ -476,7 +414,7 @@ function App() {
             </>}
           </form>}
           <section className="projects-timeline-list">
-            <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
+            <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="project-filter-label">Projeto <select value={projectFilterId} onChange={e=>setProjectFilterId(e.target.value)}><option value="all">Todos os projetos</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select></label><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
             {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28}/><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> : filteredProjects.map(project => {
               const stages = calculatedStages(readTimeline(project));
               const today = isoDate(new Date());
