@@ -425,7 +425,27 @@ function App() {
           <section className="table-card">
             <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
             {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> :
-              <div className="table-scroll"><table><thead><tr><th>Projeto</th><th>Cliente</th><th>Contrato</th><th>Entrega prevista</th><th>Status</th><th>Ação</th></tr></thead><tbody>{filteredProjects.map((project) => { const days = daysUntil(project.delivery_date); const dueClass = days !== null && days < 0 ? "due-overdue" : days !== null && days <= 7 ? "due-soon" : ""; return <tr key={project.id}><td className="project-name">{project.name}</td><td>{project.clients?.name ?? "—"}</td><td>{project.contract_number ?? "—"}</td><td><span className={dueClass}>{formatDate(project.delivery_date)}</span></td><td><span className={`status-pill status-${project.status}`}>{project.status}</span></td><td><button className="secondary-button compact-button" onClick={()=>openTimeline(project)}>Abrir cronograma</button></td></tr>; })}</tbody></table></div>}
+              <div className="spreadsheet-wrap"><table className="spreadsheet-table"><thead><tr>
+                <th className="sheet-sticky project-col">Projeto / cliente</th><th>Contrato</th>
+                {calculatedStages({}).map(stage=><th key={stage.key} title={stage.label}>{stage.label}</th>)}
+                <th>Status</th><th className="sheet-action-col">Abrir</th>
+              </tr></thead><tbody>{filteredProjects.map(project => {
+                const stages=calculatedStages(readTimeline(project));
+                return <tr key={project.id}>
+                  <td className="sheet-sticky project-col"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>
+                  <td>{project.contract_number ?? "—"}</td>
+                  {stages.map(stage=>{
+                    const value=stage.date || "";
+                    const remaining=value?workdaysBetween(isoDate(new Date()),value):null;
+                    const cls=!value?"sheet-empty":remaining!==null&&remaining<0?"sheet-overdue":remaining!==null&&remaining<=7?"sheet-soon":"sheet-ok";
+                    return <td key={stage.key} className="sheet-date-cell"><button type="button" className={`sheet-date ${cls}`} onClick={()=>openTimeline(project)} title={`${stage.label}${stage.rule?` — ${stage.rule}`:""}; clique para abrir e editar`}>
+                      <span>{formatDate(value)}</span>{value && <small>{formatCountdown(value)}</small>}
+                    </button></td>;
+                  })}
+                  <td><span className={`status-pill status-${project.status}`}>{project.status}</span></td>
+                  <td className="sheet-action-col"><button className="secondary-button compact-button" onClick={()=>openTimeline(project)}>Editar</button></td>
+                </tr>;
+              })}</tbody></table></div>}
           </section>
           {selectedProjectId && (() => {
             const selected=projects.find(p=>p.id===selectedProjectId);
