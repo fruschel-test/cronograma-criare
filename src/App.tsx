@@ -400,14 +400,14 @@ function App() {
             <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
             {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> :
               <div className="spreadsheet-wrap"><table className="spreadsheet-table"><thead><tr>
-                <th className="sheet-sticky project-col">Projeto / cliente</th><th>Contrato</th>
+                <th className="sheet-sticky project-col meta-column">Projeto / cliente</th><th className="meta-column">Contrato</th>
                 {calculatedStages({}).map((stage,index)=><th key={stage.key} className={stageSectorClass(index)} title={stage.label}><span className="stage-heading-number">{index+1}</span>{stage.label}</th>)}
-                <th>Status</th><th className="sheet-action-col">Abrir</th>
+                <th className="meta-column">Status</th><th className="sheet-action-col meta-column">Editar</th>
               </tr></thead><tbody>{filteredProjects.map(project => {
                 const stages=calculatedStages(readTimeline(project));
                 return <tr key={project.id}>
-                  <td className="sheet-sticky project-col"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>
-                  <td>{project.contract_number ?? "—"}</td>
+                  <td className="sheet-sticky project-col meta-column"><strong>{project.name}</strong><span className="sheet-subtitle">{project.clients?.name ?? "Cliente —"}</span></td>
+                  <td className="meta-column">{project.contract_number ?? "—"}</td>
                   {stages.map((stage, index) => {
                     const value=stage.date || "";
                     const remaining=value?workdaysBetween(isoDate(new Date()),value):null;
@@ -416,8 +416,8 @@ function App() {
                       <span>{formatDate(value)}</span>{value && <small>{formatCountdown(value)}</small>}
                     </button></td>;
                   })}
-                  <td><span className={`status-pill status-${project.status}`}>{project.status}</span></td>
-                  <td className="sheet-action-col"><button className="secondary-button compact-button" onClick={()=>openTimeline(project)}>Editar</button></td>
+                  <td className="meta-column"><span className={`status-pill status-${project.status}`}>{project.status}</span></td>
+                  <td className="sheet-action-col meta-column"><button className="secondary-button compact-button" onClick={()=>openTimeline(project)}>Editar</button></td>
                 </tr>;
               })}</tbody></table></div>}
           </section>

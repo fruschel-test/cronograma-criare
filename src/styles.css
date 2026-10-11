@@ -453,3 +453,221 @@ tbody tr:hover{background:#fbfcfe}
   background: #20252d;
   clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 12% 50%);
 }
+
+
+/* Ajuste visual: setas numeradas maiores e colunas administrativas em cinza */
+.stage-heading-number {
+  width: 38px;
+  height: 30px;
+  padding-left: 9px;
+  margin: 0 6px 5px 0;
+  font-size: 13px;
+  font-weight: 800;
+  background: #666666;
+  color: #ffffff;
+  clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 12% 50%);
+}
+
+.spreadsheet-table thead th.meta-column {
+  background: #666666 !important;
+  color: #ffffff !important;
+}
+
+.spreadsheet-table tbody td.meta-column {
+  background: #ffffff !important;
+  color: #3f3f3f !important;
+}
+
+.spreadsheet-table tbody td.meta-column .project-name,
+.spreadsheet-table tbody td.meta-column strong,
+.spreadsheet-table tbody td.meta-column .sheet-subtitle {
+  color: #3f3f3f !important;
+}
+
+.spreadsheet-table tbody td.meta-column .secondary-button {
+  background: #666666;
+  color: #ffffff;
+  border: 0;
+}
+
+.spreadsheet-table tbody td.meta-column .secondary-button:hover {
+  background: #505050;
+}
+
+
+/* ==================================================
+   ACABAMENTO VISUAL — PRÉVIA APROVADA CRIARE
+   ================================================== */
+
+/* Tabela ocupa a área disponível */
+.content {
+  max-width: 100%;
+  width: 100%;
+  padding-left: clamp(16px, 2vw, 32px);
+  padding-right: clamp(16px, 2vw, 32px);
+}
+
+.spreadsheet-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 0 0 12px 12px;
+}
+
+.spreadsheet-table {
+  width: 100%;
+  min-width: 1180px;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+/* Colunas administrativas: cabeçalho cinza escuro, conteúdo branco */
+.spreadsheet-table thead th.meta-column {
+  background: #666666 !important;
+  color: #ffffff !important;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  text-align: center;
+}
+
+.spreadsheet-table thead th.project-col {
+  width: 150px;
+  min-width: 150px;
+  background: #666666 !important;
+  color: #ffffff !important;
+}
+
+.spreadsheet-table thead th:nth-child(2) {
+  width: 88px;
+}
+
+.spreadsheet-table thead th:nth-child(3) {
+  width: 92px;
+}
+
+.spreadsheet-table thead th.sheet-action-col {
+  width: 92px;
+}
+
+.spreadsheet-table tbody td.meta-column {
+  background: #ffffff !important;
+  color: #414141 !important;
+  text-align: center;
+  padding: 8px 7px;
+}
+
+.spreadsheet-table tbody td.project-col {
+  text-align: left;
+  min-width: 150px;
+}
+
+.spreadsheet-table tbody td.project-col strong {
+  color: #262626 !important;
+  font-size: 12px;
+}
+
+.spreadsheet-table tbody td.project-col .sheet-subtitle {
+  color: #666666 !important;
+}
+
+/* Etapas: setas maiores e cores por setor */
+.spreadsheet-table thead th:not(.meta-column):not(.project-col):not(.sheet-action-col) {
+  padding: 8px 5px;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.stage-heading-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 42px;
+  padding: 0 16px 0 8px;
+  margin: 0 0 6px;
+  clip-path: polygon(0 0, 78% 0, 100% 50%, 78% 100%, 0 100%, 10% 50%);
+  font-size: 21px;
+  font-weight: 800;
+  color: #ffffff;
+  background: #333333;
+}
+
+.spreadsheet-table thead th.sector-comercial .stage-heading-number {
+  background: #0070C0;
+}
+.spreadsheet-table thead th.sector-conferencia .stage-heading-number {
+  background: #B45F06;
+}
+.spreadsheet-table thead th.sector-logistica .stage-heading-number {
+  background: #00B050;
+}
+
+/* Datas sempre em fundo branco; texto e contagem em verde */
+.spreadsheet-table tbody td.sheet-date-cell,
+.spreadsheet-table tbody tr:nth-child(even) td.sheet-date-cell,
+.spreadsheet-table tbody tr:hover td.sheet-date-cell {
+  background: #ffffff !important;
+}
+
+.spreadsheet-table .sheet-date,
+.spreadsheet-table .sheet-date.sector-comercial,
+.spreadsheet-table .sheet-date.sector-conferencia,
+.spreadsheet-table .sheet-date.sector-logistica,
+.spreadsheet-table .sheet-date.sheet-ok,
+.spreadsheet-table .sheet-date.sheet-soon,
+.spreadsheet-table .sheet-date.sheet-overdue,
+.spreadsheet-table .sheet-date.sheet-empty {
+  width: 100%;
+  min-height: 54px;
+  padding: 7px 5px;
+  align-items: center;
+  text-align: center;
+  background: #ffffff !important;
+  color: #16803c !important;
+}
+
+.spreadsheet-table .sheet-date span {
+  color: #16803c !important;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: normal;
+}
+.spreadsheet-table .sheet-date small {
+  color: #16803c !important;
+  font-size: 10px;
+}
+
+.spreadsheet-table .sheet-date:hover {
+  background: #f7faf7 !important;
+  outline: 2px solid #9db8a1;
+  outline-offset: -2px;
+}
+
+/* Botão Editar no tom de cinza escolhido */
+.spreadsheet-table tbody td.meta-column .secondary-button {
+  background: #666666;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.spreadsheet-table tbody td.meta-column .secondary-button:hover {
+  background: #4f4f4f;
+}
+
+/* Linhas limpas como planilha */
+.spreadsheet-table th,
+.spreadsheet-table td {
+  border-right: 1px solid #dfe3e8;
+  border-bottom: 1px solid #dfe3e8;
+}
+.spreadsheet-table tbody tr:nth-child(even) td:not(.sheet-date-cell) {
+  background: #fafafa;
+}
+
+@media (min-width: 761px) {
+  .spreadsheet-wrap { overflow-x: auto; }
+  .spreadsheet-table { min-width: 1180px; }
+}
