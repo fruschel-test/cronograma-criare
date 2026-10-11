@@ -292,3 +292,164 @@ tbody tr:hover{background:#fbfcfe}
   color: #14532d;
 }
 .spreadsheet-table .sheet-date:hover { filter: brightness(.94); }
+
+
+/* ==================================================
+   LAYOUT LATERAL PRETO — restaurado
+   ================================================== */
+.app-shell > .topbar {
+  background: #05070a;
+  color: #f8fafc;
+  border-bottom: 1px solid #20252d;
+}
+.app-shell > .topbar .brand,
+.app-shell > .topbar .brand span {
+  color: #f8fafc;
+}
+.app-shell > .topbar .brand b { color: #ffffff; }
+.app-shell > .topbar .brand-mark {
+  background: transparent;
+  overflow: hidden;
+}
+.app-shell > .topbar .brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.app-shell > .topbar .user-email { color: #c3cbd6; }
+.app-shell > .topbar .icon-button {
+  background: #1c222c;
+  color: #f8fafc;
+}
+.layout {
+  display: flex;
+  align-items: stretch;
+  min-height: calc(100vh - 72px);
+}
+.sidebar {
+  display: flex;
+  flex: 0 0 220px;
+  flex-direction: column;
+  gap: 6px;
+  width: 220px;
+  padding: 22px 12px 16px;
+  background: #080b10;
+  color: #e5e7eb;
+  border-right: 1px solid #20252d;
+}
+.sidebar-label {
+  margin: 0 8px 12px;
+  color: #8b95a5;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #d3d9e2;
+  text-align: left;
+  font-size: .84rem;
+  transition: background .15s ease, color .15s ease;
+}
+.nav-item:hover { background: #191e27; color: #fff; }
+.nav-item.active {
+  background: #272d36;
+  color: #fff;
+  box-shadow: inset 3px 0 0 #aab2bd;
+}
+.nav-count {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: #202630;
+  color: #e5e7eb;
+  font-size: .72rem;
+}
+.sidebar-bottom {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: auto;
+  padding: 18px 8px 4px;
+  color: #8994a5;
+  font-size: .72rem;
+  line-height: 1.5;
+}
+.content {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: calc(100% - 220px);
+}
+@media (max-width: 760px) {
+  .layout { flex-direction: column; }
+  .sidebar {
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 10px;
+    gap: 5px;
+  }
+  .sidebar-label, .sidebar-bottom { display: none; }
+  .nav-item { width: auto; flex: 1 1 auto; min-height: 38px; padding: 8px 10px; }
+  .content { width: 100%; }
+}
+
+
+/* AJUSTE: linha de datas branca; somente o cabeçalho identifica o setor */
+.spreadsheet-table tbody td.sheet-date-cell,
+.spreadsheet-table tbody tr:nth-child(even) td.sheet-date-cell,
+.spreadsheet-table tbody tr:hover td.sheet-date-cell {
+  background: #ffffff !important;
+}
+
+.spreadsheet-table .sheet-date,
+.spreadsheet-table .sheet-date.sector-comercial,
+.spreadsheet-table .sheet-date.sector-conferencia,
+.spreadsheet-table .sheet-date.sector-logistica,
+.spreadsheet-table .sheet-date.sheet-ok,
+.spreadsheet-table .sheet-date.sheet-soon,
+.spreadsheet-table .sheet-date.sheet-overdue,
+.spreadsheet-table .sheet-date.sheet-empty {
+  background: #ffffff !important;
+  color: #166534 !important;
+}
+
+.spreadsheet-table .sheet-date span,
+.spreadsheet-table .sheet-date small {
+  color: #166534 !important;
+}
+
+.spreadsheet-table .sheet-date:hover {
+  background: #f7faf7 !important;
+  filter: none;
+  outline: 2px solid #86a98d;
+  outline-offset: -2px;
+}
+
+/* Número da etapa dentro de uma seta apontando para a direita */
+.stage-heading-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 29px;
+  height: 23px;
+  padding-left: 6px;
+  margin: 0 5px 4px 0;
+  vertical-align: middle;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  background: #20252d;
+  clip-path: polygon(0 0, 72% 0, 100% 50%, 72% 100%, 0 100%, 12% 50%);
+}
