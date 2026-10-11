@@ -104,6 +104,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState<Page>("dashboard");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [projectModalMode, setProjectModalMode] = useState<"details" | "timeline" | null>(null);
   const [projectFilterId, setProjectFilterId] = useState<string>("all");
   const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
   const [timelineSaving, setTimelineSaving] = useState(false);
@@ -244,9 +245,10 @@ function App() {
     await loadData();
   }
 
-  async function openTimeline(project: Project) {
-    setPage("dashboard");
+  async function openTimeline(project: Project, mode: "details" | "timeline" = "timeline") {
+    setPage("projects");
     setSelectedProjectId(project.id);
+    setProjectModalMode(mode);
     setTimelineDraft({ ...readTimeline(project) });
     setAuditEntries([]);
     setAuditLoading(true);
@@ -420,19 +422,40 @@ function App() {
               const today = isoDate(new Date());
               const nextIndex = stages.findIndex(stage => stage.date && stage.date >= today);
               return <article className="dashboard-project-card project-timeline-card" key={project.id}>
-                <div className="dashboard-project-title"><div><h2>{project.name}</h2><p>{project.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {project.contract_number ?? "—"}</span><span><Users size={15}/>{project.clients?.name ?? "Cliente"}</span></div></div><div className="project-card-actions"><span className={`status-pill status-${project.status}`}>{project.status}</span><button className="secondary-button compact-button" onClick={() => void openTimeline(project)}><Pencil size={14}/> Abrir projeto</button></div></div>
+                <div className="dashboard-project-title"><div><h2>{project.name}</h2><p>{project.clients?.name ?? "Cliente não identificado"}</p><div className="project-meta"><span><CalendarDays size={15}/> Contrato {project.contract_number ?? "—"}</span><span><Users size={15}/>{project.clients?.name ?? "Cliente"}</span></div></div><div className="project-card-actions"><span className={`status-pill status-${project.status}`}>{project.status}</span><button className="secondary-button compact-button" onClick={() => void openTimeline(project, "details")}><Pencil size={14}/> Abrir projeto</button></div></div>
                 <div className="project-stage-scroll"><div className="dashboard-sector-groups"><span className="sector-band band-commercial" style={{gridColumn:"span 4"}}>COMERCIAL</span><span className="sector-band band-conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</span><span className="sector-band band-commercial" style={{gridColumn:"span 1"}}>COMERCIAL</span><span className="sector-band band-logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</span></div>
                 <div className="dashboard-stage-arrows">{stages.map((stage,index)=>{const done=Boolean(stage.date && stage.date < today);const current=index===nextIndex;return <button key={stage.key} className={`dashboard-stage ${stageSectorClass(index)} ${done?"stage-complete":""} ${current?"stage-current":""}`} onClick={()=>void openTimeline(project)} title={`${index+1}. ${stage.label}${stage.date?` — ${formatDate(stage.date)}`:""}`}><span className="dashboard-arrow-number">{index+1}</span><span className="dashboard-stage-label">{stage.label}</span><span className="project-stage-date">{formatDate(stage.date)}</span><small className="project-stage-countdown">{stage.date?formatCountdown(stage.date):"Sem data"}</small></button>})}</div></div>
                 <div className="project-card-footer"><span className="muted">Clique em uma etapa para abrir e editar as datas.</span><button className="primary-button" onClick={() => void openTimeline(project)}>Abrir cronograma</button></div>
               </article>;
             })}
           </section>
-          {selectedProjectId && (() => {
+          {selectedProjectId && projectModalMode === "details" && (() => {
+            const selected=projects.find(p=>p.id===selectedProjectId);
+            if(!selected) return null;
+            const stages=calculatedStages(readTimeline(selected));
+            const dated=stages.filter(stage=>Boolean(stage.date)).length;
+            const today=isoDate(new Date());
+            const next=stages.find(stage=>stage.date && stage.date >= today);
+            return <div className="project-modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget){setProjectModalMode(null);setSelectedProjectId(null);}}}>
+              <section className="project-info-modal" role="dialog" aria-modal="true" aria-label="Detalhes do projeto">
+                <div className="project-modal-heading"><div><span className="eyebrow">RESUMO DO PROJETO</span><h2>{selected.name}</h2><p>{selected.clients?.name ?? "Cliente não identificado"}</p></div><button className="icon-button" onClick={()=>{setProjectModalMode(null);setSelectedProjectId(null);}} aria-label="Fechar">×</button></div>
+                <div className="project-info-grid">
+                  <div><span>Cliente</span><strong>{selected.clients?.name ?? "—"}</strong></div>
+                  <div><span>Contrato</span><strong>{selected.contract_number ?? "Não informado"}</strong></div>
+                  <div><span>Status</span><strong><span className={`status-pill status-${selected.status}`}>{selected.status}</span></strong></div>
+                  <div><span>Etapas com data</span><strong>{dated} de {stages.length}</strong></div>
+                </div>
+                <div className="project-modal-next"><span className="eyebrow">PRÓXIMA ETAPA</span><strong>{next?.label ?? "Nenhuma etapa com data futura"}</strong><span>{next?.date ? `${formatDate(next.date)} · ${formatCountdown(next.date)}` : "Defina as datas no cronograma para acompanhar os prazos."}</span></div>
+                <div className="project-modal-actions"><button className="secondary-button" onClick={()=>{setProjectModalMode(null);setSelectedProjectId(null);}}>Fechar</button><button className="primary-button" onClick={()=>{setTimelineDraft({...readTimeline(selected)});setProjectModalMode("timeline");}}>Abrir cronograma <CalendarDays size={16}/></button></div>
+              </section>
+            </div>;
+          })()}
+          {selectedProjectId && projectModalMode === "timeline" && (() => {
             const selected=projects.find(p=>p.id===selectedProjectId);
             if(!selected) return null;
             const stages=calculatedStages(timelineDraft);
-            return <section className="timeline-card">
-              <div className="timeline-header"><div><p className="eyebrow">CRONOGRAMA DETALHADO</p><h2>{selected.name}</h2><p className="muted">{selected.clients?.name ?? "Cliente não identificado"} · Contrato {selected.contract_number ?? "—"}</p></div><button className="secondary-button" onClick={()=>setSelectedProjectId(null)}>Fechar</button></div>
+            return <div className="project-modal-backdrop timeline-modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget){setProjectModalMode(null);setSelectedProjectId(null);}}}><section className="timeline-card timeline-editor-modal" role="dialog" aria-modal="true" aria-label="Editar cronograma">
+              <div className="timeline-header"><div><p className="eyebrow">CRONOGRAMA DETALHADO</p><h2>{selected.name}</h2><p className="muted">{selected.clients?.name ?? "Cliente não identificado"} · Contrato {selected.contract_number ?? "—"}</p></div><button className="secondary-button" onClick={()=>{setProjectModalMode(null);setSelectedProjectId(null);}}>Fechar</button></div>
               <p className="timeline-note">As datas automáticas consideram dias úteis, excluindo sábados, domingos, feriados nacionais e o feriado estadual de 20 de setembro (RS). Feriados municipais não são considerados.</p>
               <div className="timeline-list">{stages.map((stage,index)=>{
                 const editable=stage.kind==="manual"; const value=stage.date || "";
@@ -445,7 +468,7 @@ function App() {
                 {auditLoading ? <p className="muted">Carregando histórico…</p> : auditEntries.length === 0 ? <p className="muted">Nenhuma alteração registrada após a ativação do histórico.</p> :
                   <ol className="audit-list">{auditEntries.map(entry => <li key={entry.id}><div><strong>{entry.action === "INSERT" ? "Projeto criado" : entry.action === "DELETE" ? "Projeto removido" : "Projeto atualizado"}</strong><p>{entry.summary}</p><span>{entry.actor_email || "Usuário autenticado"} · {new Date(entry.changed_at).toLocaleString("pt-BR")}</span></div></li>)}</ol>}
               </div>
-            </section>;
+            </section></div>;
           })()}
         </>}
 

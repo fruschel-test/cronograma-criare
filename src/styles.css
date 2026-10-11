@@ -1038,3 +1038,30 @@ tbody tr:hover{background:#fbfcfe}
 .table-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 @media(max-width:1100px){.dashboard-analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-wide{grid-column:1/-1}}
 @media(max-width:700px){.dashboard-analytics-grid{grid-template-columns:1fr}.analytics-wide{grid-column:auto}.dashboard-kpis-analytics{grid-template-columns:repeat(2,minmax(0,1fr))}.project-filter-label{width:100%}.project-filter-label select{flex:1;max-width:none}}
+
+/* V6 — janelas flutuantes para detalhes do projeto e edição do cronograma */
+.project-modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(15,23,42,.48);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
+.project-info-modal{width:min(620px,100%);background:#fff;border:1px solid #dbe5f2;border-radius:20px;box-shadow:0 24px 80px rgba(15,23,42,.28);padding:26px;color:#172033}
+.project-modal-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.project-modal-heading h2{font-size:24px;margin:5px 0 4px;font-weight:800;letter-spacing:-.03em}
+.project-modal-heading p{margin:0;color:#64748b}
+.project-modal-heading .icon-button{font-size:24px;width:38px;height:38px;border-radius:12px}
+.project-info-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.project-info-grid>div{border:1px solid #e3eaf4;background:#f8fafc;border-radius:14px;padding:15px;min-width:0}
+.project-info-grid>div>span{display:block;color:#64748b;font-size:12px;margin-bottom:7px}
+.project-info-grid strong{font-size:15px;overflow-wrap:anywhere}
+.project-modal-next{display:flex;flex-direction:column;gap:8px;background:#eff6ff;border:1px solid #dbeafe;border-radius:14px;padding:17px;margin-top:15px}
+.project-modal-next>strong{font-size:16px}
+.project-modal-next>span:last-child{font-size:13px;color:#475569}
+.project-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+.project-modal-actions .primary-button{display:flex;align-items:center;gap:8px}
+.timeline-modal-backdrop{align-items:flex-start}
+.timeline-editor-modal{width:min(1120px,100%);max-height:calc(100vh - 48px);overflow:auto;margin:auto;background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(15,23,42,.3);padding:24px}
+.timeline-editor-modal .timeline-header{position:sticky;top:-24px;z-index:2;background:#fff;padding:8px 0 16px;border-bottom:1px solid #e2e8f0;margin-bottom:16px}
+.timeline-editor-modal .timeline-list{gap:8px}
+.timeline-editor-modal .timeline-row{border:1px solid #e3eaf4;border-radius:12px;padding:12px;background:#fff}
+.timeline-editor-modal .timeline-row:nth-child(even){background:#f8fafc}
+.timeline-editor-modal .timeline-stage strong{font-size:14px}
+.timeline-editor-modal .timeline-date input{min-height:40px;border:1px solid #cbd5e1;border-radius:9px;padding:7px 10px;background:#fff}
+.timeline-editor-modal .timeline-footer{position:sticky;bottom:-24px;background:#fff;padding:16px 0 8px;border-top:1px solid #e2e8f0;margin-top:16px}
+@media(max-width:700px){.project-modal-backdrop{padding:12px;align-items:center}.project-info-modal{padding:18px;border-radius:16px}.project-info-grid{grid-template-columns:1fr 1fr}.timeline-editor-modal{padding:16px;max-height:calc(100vh - 24px)}.timeline-editor-modal .timeline-row{grid-template-columns:34px minmax(0,1fr);gap:10px}}
