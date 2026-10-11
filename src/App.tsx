@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import {
   CalendarClock, Check, LogIn, LogOut, Plus, RefreshCw, Search, ShieldCheck,
-  Users, CalendarDays, LayoutDashboard, Pencil, X
+  Users, CalendarDays, LayoutDashboard, Pencil, X, Save
 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
@@ -454,21 +454,67 @@ function App() {
             const selected=projects.find(p=>p.id===selectedProjectId);
             if(!selected) return null;
             const stages=calculatedStages(timelineDraft);
-            return <div className="project-modal-backdrop timeline-modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget){setProjectModalMode(null);setSelectedProjectId(null);}}}><section className="timeline-card timeline-editor-modal" role="dialog" aria-modal="true" aria-label="Editar cronograma">
-              <div className="timeline-header"><div><p className="eyebrow">CRONOGRAMA DETALHADO</p><h2>{selected.name}</h2><p className="muted">{selected.clients?.name ?? "Cliente não identificado"} · Contrato {selected.contract_number ?? "—"}</p></div><button className="secondary-button" onClick={()=>{setProjectModalMode(null);setSelectedProjectId(null);}}>Fechar</button></div>
-              <p className="timeline-note">As datas automáticas consideram dias úteis, excluindo sábados, domingos, feriados nacionais e o feriado estadual de 20 de setembro (RS). Feriados municipais não são considerados.</p>
-              <div className="timeline-list">{stages.map((stage,index)=>{
-                const editable=stage.kind==="manual"; const value=stage.date || "";
-                return <article className={`timeline-row ${stageSectorClass(index)}`} key={stage.key}><div className="timeline-number">{index+1}</div><div className="timeline-stage"><strong>{stage.label}</strong><span>{editable?"Data informada manualmente":stage.rule}</span></div><div className="timeline-date">{editable && canEdit ? <input aria-label={stage.label} type="date" value={value} onChange={e=>setTimelineDraft(prev=>({...prev,[stage.key]:e.target.value}))}/> : <span>{formatDate(value)}</span>}</div><div className={`timeline-countdown ${countdownClass(value)}`}>{value?formatCountdown(value):"Aguardando data base"}</div><span className={`timeline-kind ${editable?"manual":"automatic"}`}>{editable?"Manual":"Automática"}</span></article>;
-              })}</div>
-              <div className="timeline-footer"><span className="muted">Datas automáticas são recalculadas quando uma data-base é alterada.</span>{canEdit && <button className="primary-button" disabled={timelineSaving} onClick={()=>void saveTimeline()}>{timelineSaving?"Salvando…":"Salvar cronograma"}</button>}</div>
-              {!canEdit && <p className="muted">Seu perfil é somente leitura; solicite acesso de editor para alterar datas.</p>}
-              <div className="audit-panel">
-                <div className="audit-heading"><div><p className="eyebrow">AUDITORIA</p><h3>Histórico de alterações</h3></div><span className="muted">Últimos 20 eventos</span></div>
-                {auditLoading ? <p className="muted">Carregando histórico…</p> : auditEntries.length === 0 ? <p className="muted">Nenhuma alteração registrada após a ativação do histórico.</p> :
-                  <ol className="audit-list">{auditEntries.map(entry => <li key={entry.id}><div><strong>{entry.action === "INSERT" ? "Projeto criado" : entry.action === "DELETE" ? "Projeto removido" : "Projeto atualizado"}</strong><p>{entry.summary}</p><span>{entry.actor_email || "Usuário autenticado"} · {new Date(entry.changed_at).toLocaleString("pt-BR")}</span></div></li>)}</ol>}
-              </div>
-            </section></div>;
+            const groupFor=(index:number)=>index<4 || index===8 ? "Comercial" : index<8 ? "Conferência" : "Logística";
+            const groupClass=(index:number)=>index<4 || index===8 ? "commercial" : index<8 ? "conference" : "logistics";
+            const dated=stages.filter(stage=>Boolean(stage.date)).length;
+            return <div className="project-modal-backdrop timeline-modal-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget){setProjectModalMode(null);setSelectedProjectId(null);}}}>
+              <section className="timeline-editor-page" role="dialog" aria-modal="true" aria-label="Editar cronograma">
+                <header className="editor-page-header">
+                  <div><div className="editor-breadcrumb">Projetos <span>/</span> {selected.name} <span>/</span> Editar cronograma</div><h2>Editar cronograma</h2><p>Configure etapas, datas e responsáveis do projeto</p></div>
+                  <div className="editor-header-actions"><button className="secondary-button" onClick={()=>{setProjectModalMode(null);setSelectedProjectId(null);}}>Cancelar</button>{canEdit && <button className="primary-button" disabled={timelineSaving} onClick={()=>void saveTimeline()}><Save size={16}/>{timelineSaving?"Salvando…":"Salvar alterações"}</button>}</div>
+                </header>
+                <div className="timeline-editor-layout">
+                  <main className="timeline-editor-main">
+                    <section className="editor-panel project-data-panel">
+                      <h3>Dados do projeto</h3>
+                      <div className="project-data-fields">
+                        <label>Projeto <b>*</b><input value={selected.name} readOnly /></label>
+                        <label>Cliente <b>*</b><input value={selected.clients?.name ?? ""} readOnly /></label>
+                        <label>Contrato<input value={selected.contract_number ?? ""} readOnly placeholder="Não informado" /></label>
+                        <label>Responsável<input value="—" readOnly /></label>
+                        <label>Status <b>*</b><input value={selected.status === "ativo" ? "Ativo" : selected.status} readOnly className="status-input" /></label>
+                      </div>
+                    </section>
+                    <section className="editor-panel editor-stages-panel">
+                      <div className="editor-panel-title"><h3>Etapas do cronograma</h3><span>As datas automáticas são calculadas a partir das etapas-base.</span></div>
+                      <div className="editor-stage-table-wrap">
+                        <div className="editor-stage-table">
+                          <div className="editor-stage-head"><span>#</span><span>Descrição da etapa</span><span>Grupo</span><span>Data prevista</span><span>Responsável</span><span>Ações</span></div>
+                          {stages.map((stage,index)=>{
+                            const editable=stage.kind==="manual"; const value=stage.date || "";
+                            return <div className="editor-stage-row" key={stage.key}>
+                              <span className="editor-grip">⠿</span>
+                              <span className="editor-stage-title"><b className={`editor-stage-number ${groupClass(index)}`}>{index+1}</b><span>{stage.label}</span></span>
+                              <span className="editor-stage-group"><i className={groupClass(index)} />{groupFor(index)}</span>
+                              <span className="editor-stage-date">{editable && canEdit ? <input aria-label={stage.label} type="date" value={value} onChange={e=>setTimelineDraft(prev=>({...prev,[stage.key]:e.target.value}))}/> : <span>{formatDate(value)}</span>}</span>
+                              <span className="editor-stage-owner">—</span>
+                              <span className="editor-stage-actions"><button type="button" title="Duplicar etapa" disabled aria-label="Duplicar etapa">▢</button><button type="button" title="Remover etapa" disabled aria-label="Remover etapa">×</button></span>
+                            </div>;
+                          })}
+                        </div>
+                      </div>
+                      <p className="editor-stage-footnote">As 12 etapas padrão estão configuradas. A ordem e os grupos seguem o modelo atual do cronograma.</p>
+                    </section>
+                  </main>
+                  <aside className="timeline-editor-sidebar">
+                    <section className="editor-panel preview-panel">
+                      <h3>Prévia do cronograma</h3>
+                      <div className="editor-sector-bands"><span className="commercial" style={{gridColumn:"span 4"}}>COMERCIAL</span><span className="conference" style={{gridColumn:"span 4"}}>CONFERÊNCIA</span><span className="commercial"> </span><span className="logistics" style={{gridColumn:"span 3"}}>LOGÍSTICA</span></div>
+                      <div className="editor-mini-arrows">{stages.map((stage,index)=><span key={stage.key} className={`editor-mini-arrow ${groupClass(index)}`}>{index+1}</span>)}</div>
+                      <div className="editor-legend"><span><i className="commercial"/>Comercial</span><span><i className="conference"/>Conferência</span><span><i className="logistics"/>Logística</span></div>
+                    </section>
+                    <section className="editor-panel editor-validation-panel">
+                      <h3>Validações</h3>
+                      <div className="editor-validation-item"><span className="validation-icon good">✓</span><div><strong>12 etapas cadastradas</strong><p>O cronograma possui {stages.length} etapas.</p></div></div>
+                      <div className="editor-validation-item"><span className="validation-icon warn">!</span><div><strong>{dated===stages.length?"Todas as datas definidas":"Datas ainda não definidas"}</strong><p>{dated===stages.length?"Todas as etapas possuem uma data.":`Defina as datas previstas para as etapas (${dated} de ${stages.length} preenchidas).`}</p></div></div>
+                      <div className="editor-validation-item"><span className="validation-icon info">i</span><div><strong>Verifique a sequência das etapas</strong><p>Confirme se as datas e dependências estão corretas.</p></div></div>
+                    </section>
+                    <section className="editor-panel editor-settings-panel"><h3>Configurações</h3><label><input type="checkbox" checked readOnly/> Contar apenas dias úteis</label><p>Os prazos são calculados considerando dias úteis, fins de semana e feriados configurados no aplicativo.</p><label className="holiday-label">Feriados / calendário</label><select value="rs" disabled><option value="rs">Feriados nacionais e locais (Rio Grande do Sul)</option></select><small>Utilizado para o cálculo de prazos e dias decorridos.</small></section>
+                  </aside>
+                </div>
+                {!canEdit && <p className="muted">Seu perfil é somente leitura; solicite acesso de editor para alterar datas.</p>}
+              </section>
+            </div>;
           })()}
         </>}
 
