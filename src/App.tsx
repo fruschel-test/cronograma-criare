@@ -9,6 +9,65 @@ import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import type { Client, Project } from "./types/database";
 
 type Page = "dashboard" | "clients" | "projects";
+type ManualTimeline = { firstContact?: string; briefing?: string; contractSigned?: string; conferenceScheduled?: string; technicalBookletSigned?: string; orderPlaced?: string };
+
+function isoDate(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function easterSunday(year: number) {
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31),day=((h+l-7*m+114)%31)+1;
+  return new Date(year,month-1,day);
+}
+function holidaySet(year: number) {
+  const fixed = [`${year}-01-01`,`${year}-04-21`,`${year}-05-01`,`${year}-09-07`,`${year}-09-20`,`${year}-10-12`,`${year}-11-02`,`${year}-11-15`,`${year}-11-20`,`${year}-12-25`];
+  const easter=easterSunday(year); const goodFriday=new Date(easter); goodFriday.setDate(easter.getDate()-2);
+  return new Set([...fixed,isoDate(goodFriday)]);
+}
+function isBusinessDay(date: Date) {
+  if (date.getDay()===0 || date.getDay()===6) return false;
+  return !holidaySet(date.getFullYear()).has(isoDate(date));
+}
+function addBusinessDays(value: string | undefined, days: number): string {
+  if (!value) return "";
+  const [y,m,d]=value.slice(0,10).split('-').map(Number); const date=new Date(y,m-1,d); let added=0;
+  while(added<days){ date.setDate(date.getDate()+1); if(isBusinessDay(date)) added++; }
+  return isoDate(date);
+}
+function workdaysBetween(from: string, to: string) {
+  if(!from || !to) return null;
+  const [fy,fm,fd]=from.split('-').map(Number), [ty,tm,td]=to.split('-').map(Number);
+  const start=new Date(fy,fm-1,fd), end=new Date(ty,tm-1,td); const sign=end>=start?1:-1;
+  let count=0, cur=new Date(start); while(cur.getTime()!==end.getTime()){cur.setDate(cur.getDate()+sign); if(isBusinessDay(cur)) count+=sign; if(Math.abs(count)>10000) break;}
+  return count;
+}
+function formatCountdown(date: string) {
+  if(!date) return "—";
+  const today=isoDate(new Date()); const n=workdaysBetween(today,date);
+  if(n===null) return "—"; if(n<0) return `${Math.abs(n)} dia(s) útil(eis) em atraso`; if(n===0) return "Vence hoje"; return `${n} dia(s) útil(eis)`;
+}
+function countdownClass(date: string) { if(!date) return ""; const n=workdaysBetween(isoDate(new Date()),date); return n!==null&&n<0?"timeline-overdue":n!==null&&n<=7?"timeline-soon":"timeline-ok"; }
+function readTimeline(project: Project): ManualTimeline { return ((project as Project & {timeline?: ManualTimeline}).timeline ?? {}); }
+type TimelineStage = { key: string; label: string; date: string | undefined; kind: "manual" | "auto"; rule?: string };
+function calculatedStages(manual: ManualTimeline): TimelineStage[] {
+  const anteprojeto=addBusinessDays(manual.briefing,7);
+  const envelope=addBusinessDays(manual.contractSigned,2);
+  const cadernoApproval=addBusinessDays(manual.conferenceScheduled,10);
+  const cadernoChanges=addBusinessDays(cadernoApproval,2);
+  const delivery=addBusinessDays(manual.contractSigned,40);
+  const assembly=addBusinessDays(delivery,1);
+  return [
+    {key:"firstContact",label:"1º contato do cliente",date:manual.firstContact,kind:"manual"},
+    {key:"briefing",label:"Briefing + medidas iniciais",date:manual.briefing,kind:"manual"},
+    {key:"anteproject",label:"Apresentação do anteprojeto",date:anteprojeto,kind:"auto",rule:"7 dias úteis após o briefing"},
+    {key:"contractSigned",label:"Assinatura do contrato",date:manual.contractSigned,kind:"manual"},
+    {key:"envelope",label:"Entrega do envelope + e-mail de venda ao setor técnico",date:envelope,kind:"auto",rule:"2 dias úteis após a assinatura do contrato"},
+    {key:"conferenceScheduled",label:"Agendamento da medição de conferência",date:manual.conferenceScheduled,kind:"manual"},
+    {key:"cadernoApproval",label:"Entrega do caderno técnico para aprovação",date:cadernoApproval,kind:"auto",rule:"10 dias úteis após o agendamento da conferência"},
+    {key:"cadernoChanges",label:"Entrega do caderno técnico com alterações",date:cadernoChanges,kind:"auto",rule:"2 dias úteis após a entrega para aprovação"},
+    {key:"technicalBookletSigned",label:"Assinatura do caderno técnico final",date:manual.technicalBookletSigned,kind:"manual"},
+    {key:"orderPlaced",label:"Pedido implantado (fábrica + extras)",date:manual.orderPlaced,kind:"manual"},
+    {key:"delivery",label:"Entrega prevista",date:delivery,kind:"auto",rule:"40 dias úteis após a assinatura do contrato"},
+    {key:"assembly",label:"Montagem prevista",date:assembly,kind:"auto",rule:"1 dia útil após a entrega prevista"},
+  ];
+}
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -37,6 +96,9 @@ function App() {
   const [notice, setNotice] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState<Page>("dashboard");
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
+  const [timelineSaving, setTimelineSaving] = useState(false);
 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectClientId, setProjectClientId] = useState("");
@@ -171,6 +233,24 @@ function App() {
     await loadData();
   }
 
+  function openTimeline(project: Project) {
+    setSelectedProjectId(project.id);
+    setTimelineDraft({ ...readTimeline(project) });
+    setError(""); setNotice("");
+  }
+  async function saveTimeline() {
+    if (!supabase || !canEdit || !selectedProjectId) return;
+    setTimelineSaving(true); setError(""); setNotice("");
+    const calculated=calculatedStages(timelineDraft).find(s=>s.key==="delivery")?.date || null;
+    const { error: saveError } = await supabase.from("projects").update({ timeline: timelineDraft, delivery_date: calculated || null }).eq("id", selectedProjectId);
+    setTimelineSaving(false);
+    if (saveError) { setError(`Não foi possível salvar o cronograma: ${saveError.message}`); return; }
+    setNotice("Cronograma salvo com sucesso.");
+    await loadData();
+    const updated=projects.find(p=>p.id===selectedProjectId);
+    if(updated) setTimelineDraft({...timelineDraft});
+  }
+
   const filteredProjects = projects.filter((project) => {
     const haystack = `${project.name} ${project.contract_number ?? ""} ${project.clients?.name ?? ""}`.toLocaleLowerCase("pt-BR");
     return haystack.includes(search.toLocaleLowerCase("pt-BR"));
@@ -222,7 +302,7 @@ function App() {
           <div>
             <p className="eyebrow">{page === "dashboard" ? "VISÃO GERAL" : page === "clients" ? "RELACIONAMENTO" : "ACOMPANHAMENTO"}</p>
             <h1>{page === "dashboard" ? "Dashboard" : page === "clients" ? "Clientes" : "Cronogramas de projetos"}</h1>
-            <p className="muted">{page === "dashboard" ? "Resumo dos projetos, clientes e prazos." : page === "clients" ? "Cadastre e mantenha os dados dos clientes." : "Consulte projetos, contratos e datas previstas."}</p>
+            <p className="muted">{page === "dashboard" ? "Resumo dos projetos, clientes e prazos." : page === "clients" ? "Cadastre e mantenha os dados dos clientes." : "Abra um projeto para editar datas e acompanhar os prazos úteis."}</p>
           </div>
           <div className="heading-actions">
             {page === "clients" && canEdit && <button className="primary-button" onClick={() => { resetClientForm(); setShowClientForm(true); setNotice(""); setError(""); }}><Plus size={18} /> Novo cliente</button>}
@@ -280,8 +360,23 @@ function App() {
           <section className="table-card">
             <div className="table-heading"><div><h2>Todos os projetos</h2><p className="muted">{filteredProjects.length} projeto(s)</p></div><div className="table-tools"><label className="search-box"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente, projeto ou contrato" /></label></div></div>
             {loading ? <div className="empty-state">Carregando projetos…</div> : filteredProjects.length === 0 ? <div className="empty-state"><CalendarClock size={28} /><strong>Nenhum projeto encontrado</strong><span>Os projetos cadastrados aparecerão aqui.</span></div> :
-              <div className="table-scroll"><table><thead><tr><th>Projeto</th><th>Cliente</th><th>Contrato</th><th>Entrega prevista</th><th>Status</th></tr></thead><tbody>{filteredProjects.map((project) => { const days = daysUntil(project.delivery_date); const dueClass = days !== null && days < 0 ? "due-overdue" : days !== null && days <= 7 ? "due-soon" : ""; return <tr key={project.id}><td className="project-name">{project.name}</td><td>{project.clients?.name ?? "—"}</td><td>{project.contract_number ?? "—"}</td><td><span className={dueClass}>{formatDate(project.delivery_date)}</span></td><td><span className={`status-pill status-${project.status}`}>{project.status}</span></td></tr>; })}</tbody></table></div>}
+              <div className="table-scroll"><table><thead><tr><th>Projeto</th><th>Cliente</th><th>Contrato</th><th>Entrega prevista</th><th>Status</th><th>Ação</th></tr></thead><tbody>{filteredProjects.map((project) => { const days = daysUntil(project.delivery_date); const dueClass = days !== null && days < 0 ? "due-overdue" : days !== null && days <= 7 ? "due-soon" : ""; return <tr key={project.id}><td className="project-name">{project.name}</td><td>{project.clients?.name ?? "—"}</td><td>{project.contract_number ?? "—"}</td><td><span className={dueClass}>{formatDate(project.delivery_date)}</span></td><td><span className={`status-pill status-${project.status}`}>{project.status}</span></td><td><button className="secondary-button compact-button" onClick={()=>openTimeline(project)}>Abrir cronograma</button></td></tr>; })}</tbody></table></div>}
           </section>
+          {selectedProjectId && (() => {
+            const selected=projects.find(p=>p.id===selectedProjectId);
+            if(!selected) return null;
+            const stages=calculatedStages(timelineDraft);
+            return <section className="timeline-card">
+              <div className="timeline-header"><div><p className="eyebrow">CRONOGRAMA DETALHADO</p><h2>{selected.name}</h2><p className="muted">{selected.clients?.name ?? "Cliente não identificado"} · Contrato {selected.contract_number ?? "—"}</p></div><button className="secondary-button" onClick={()=>setSelectedProjectId(null)}>Fechar</button></div>
+              <p className="timeline-note">As datas automáticas consideram dias úteis, excluindo sábados, domingos, feriados nacionais e o feriado estadual de 20 de setembro (RS). Feriados municipais não são considerados.</p>
+              <div className="timeline-list">{stages.map((stage,index)=>{
+                const editable=stage.kind==="manual"; const value=stage.date || "";
+                return <article className="timeline-row" key={stage.key}><div className="timeline-number">{index+1}</div><div className="timeline-stage"><strong>{stage.label}</strong><span>{editable?"Data informada manualmente":stage.rule}</span></div><div className="timeline-date">{editable && canEdit ? <input aria-label={stage.label} type="date" value={value} onChange={e=>setTimelineDraft(prev=>({...prev,[stage.key]:e.target.value}))}/> : <span>{formatDate(value)}</span>}</div><div className={`timeline-countdown ${countdownClass(value)}`}>{value?formatCountdown(value):"Aguardando data base"}</div><span className={`timeline-kind ${editable?"manual":"automatic"}`}>{editable?"Manual":"Automática"}</span></article>;
+              })}</div>
+              <div className="timeline-footer"><span className="muted">Datas automáticas são recalculadas quando uma data-base é alterada.</span>{canEdit && <button className="primary-button" disabled={timelineSaving} onClick={()=>void saveTimeline()}>{timelineSaving?"Salvando…":"Salvar cronograma"}</button>}</div>
+              {!canEdit && <p className="muted">Seu perfil é somente leitura; solicite acesso de editor para alterar datas.</p>}
+            </section>;
+          })()}
         </>}
 
         <p className="security-note"><ShieldCheck size={15} /> Dados protegidos pelas políticas de acesso do Supabase. Perfil atual: {role}.</p>
