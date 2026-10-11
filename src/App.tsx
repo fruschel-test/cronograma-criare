@@ -8,7 +8,7 @@ import type { Session } from "@supabase/supabase-js";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import type { Client, Project } from "./types/database";
 
-type Page = "dashboard" | "clients" | "projects";
+type Page = "dashboard" | "clients" | "projects" | "admin";
 type ManualTimeline = { firstContact?: string; briefing?: string; contractSigned?: string; conferenceScheduled?: string; technicalBookletSigned?: string; orderPlaced?: string };
 
 function isoDate(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -99,6 +99,13 @@ function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
   const [timelineSaving, setTimelineSaving] = useState(false);
+  const [auditEntries, setAuditEntries] = useState<Array<{id:string; action:string; changed_at:string; actor_email:string|null; summary:string}>>([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"editor" | "viewer">("viewer");
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [userProfiles, setUserProfiles] = useState<Array<{id:string; role:string; email:string|null}>>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   const [showProjectForm, setShowProjectForm] = useState(false);
   const [projectClientId, setProjectClientId] = useState("");
@@ -233,10 +240,23 @@ function App() {
     await loadData();
   }
 
-  function openTimeline(project: Project) {
+  async function openTimeline(project: Project) {
     setSelectedProjectId(project.id);
     setTimelineDraft({ ...readTimeline(project) });
+    setAuditEntries([]);
+    setAuditLoading(true);
     setError(""); setNotice("");
+    if (supabase) {
+      const { data, error: auditError } = await supabase
+        .from("project_audit_log")
+        .select("id,action,changed_at,actor_email,summary")
+        .eq("project_id", project.id)
+        .order("changed_at", { ascending: false })
+        .limit(20);
+      if (auditError) setError(`Histórico: ${auditError.message}`);
+      else setAuditEntries((data ?? []) as typeof auditEntries);
+    }
+    setAuditLoading(false);
   }
   async function saveTimeline() {
     if (!supabase || !canEdit || !selectedProjectId) return;
@@ -250,6 +270,50 @@ function App() {
     const updated=projects.find(p=>p.id===selectedProjectId);
     if(updated) setTimelineDraft({...timelineDraft});
   }
+
+  async function loadUserProfiles() {
+    if (!supabase || role !== "admin") return;
+    setUsersLoading(true); setError("");
+    const { data, error: listError } = await supabase.from("profiles").select("id,role,email").order("role");
+    if (listError) setError(`Não foi possível carregar usuários: ${listError.message}`);
+    else setUserProfiles((data ?? []) as typeof userProfiles);
+    setUsersLoading(false);
+  }
+
+  async function inviteUser(event: FormEvent) {
+    event.preventDefault();
+    if (!supabase || role !== "admin" || !inviteEmail.trim()) return;
+    setInviteLoading(true); setError(""); setNotice("");
+    const { data, error: inviteError } = await supabase.functions.invoke("admin-invite-user", {
+      body: { email: inviteEmail.trim().toLowerCase(), role: inviteRole }
+    });
+    setInviteLoading(false);
+    if (inviteError) { setError(`Falha ao enviar convite: ${inviteError.message}. Confira se a Edge Function foi publicada e se os secrets estão configurados.`); return; }
+    if (data?.error) { setError(`Falha ao enviar convite: ${data.error}`); return; }
+    setNotice(`Convite enviado para ${inviteEmail.trim()}. O usuário deverá aceitar o convite e definir o acesso.`);
+    setInviteEmail("");
+    await loadUserProfiles();
+  }
+
+  async function changeUserRole(userId: string, nextRole: "admin" | "editor" | "viewer") {
+    if (!supabase || role !== "admin") return;
+    if (userId === session?.user.id && nextRole !== "admin") {
+      setError("Para evitar bloqueio administrativo, não é possível rebaixar seu próprio perfil nesta tela.");
+      return;
+    }
+    setError(""); setNotice("");
+    const { data, error: roleError } = await supabase.functions.invoke("admin-set-user-role", {
+      body: { user_id: userId, role: nextRole }
+    });
+    if (roleError || data?.error) { setError(`Não foi possível alterar o papel: ${roleError?.message ?? data?.error}`); return; }
+    setNotice("Papel atualizado.");
+    await loadUserProfiles();
+  }
+
+  useEffect(() => {
+    if (session && role === "admin" && page === "admin") void loadUserProfiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, role, page]);
 
   const filteredProjects = projects.filter((project) => {
     const haystack = `${project.name} ${project.contract_number ?? ""} ${project.clients?.name ?? ""}`.toLocaleLowerCase("pt-BR");
@@ -295,14 +359,15 @@ function App() {
         <button className={page === "dashboard" ? "nav-item active" : "nav-item"} onClick={() => { setPage("dashboard"); setSearch(""); }}><LayoutDashboard size={18} /> Dashboard</button>
         <button className={page === "clients" ? "nav-item active" : "nav-item"} onClick={() => { setPage("clients"); setSearch(""); }}><Users size={18} /> Clientes <span className="nav-count">{clients.length}</span></button>
         <button className={page === "projects" ? "nav-item active" : "nav-item"} onClick={() => { setPage("projects"); setSearch(""); }}><CalendarDays size={18} /> Cronogramas <span className="nav-count">{projects.length}</span></button>
+        {role === "admin" && <button className={page === "admin" ? "nav-item active" : "nav-item"} onClick={() => { setPage("admin"); setSearch(""); }}><ShieldCheck size={18} /> Administração</button>}
         <div className="sidebar-bottom"><ShieldCheck size={16} /><span>Permissões protegidas pelo Supabase</span></div>
       </aside>
       <section className="content">
         <div className="page-heading">
           <div>
-            <p className="eyebrow">{page === "dashboard" ? "VISÃO GERAL" : page === "clients" ? "RELACIONAMENTO" : "ACOMPANHAMENTO"}</p>
-            <h1>{page === "dashboard" ? "Dashboard" : page === "clients" ? "Clientes" : "Cronogramas de projetos"}</h1>
-            <p className="muted">{page === "dashboard" ? "Resumo dos projetos, clientes e prazos." : page === "clients" ? "Cadastre e mantenha os dados dos clientes." : "Abra um projeto para editar datas e acompanhar os prazos úteis."}</p>
+            <p className="eyebrow">{page === "dashboard" ? "VISÃO GERAL" : page === "clients" ? "RELACIONAMENTO" : page === "admin" ? "CONTROLE DE ACESSO" : "ACOMPANHAMENTO"}</p>
+            <h1>{page === "dashboard" ? "Dashboard" : page === "clients" ? "Clientes" : page === "admin" ? "Administração de usuários" : "Cronogramas de projetos"}</h1>
+            <p className="muted">{page === "dashboard" ? "Resumo dos projetos, clientes e prazos." : page === "clients" ? "Cadastre e mantenha os dados dos clientes." : page === "admin" ? "Convide usuários e gerencie seus papéis de acesso." : "Abra um projeto para editar datas e acompanhar os prazos úteis."}</p>
           </div>
           <div className="heading-actions">
             {page === "clients" && canEdit && <button className="primary-button" onClick={() => { resetClientForm(); setShowClientForm(true); setNotice(""); setError(""); }}><Plus size={18} /> Novo cliente</button>}
@@ -375,6 +440,11 @@ function App() {
               })}</div>
               <div className="timeline-footer"><span className="muted">Datas automáticas são recalculadas quando uma data-base é alterada.</span>{canEdit && <button className="primary-button" disabled={timelineSaving} onClick={()=>void saveTimeline()}>{timelineSaving?"Salvando…":"Salvar cronograma"}</button>}</div>
               {!canEdit && <p className="muted">Seu perfil é somente leitura; solicite acesso de editor para alterar datas.</p>}
+              <div className="audit-panel">
+                <div className="audit-heading"><div><p className="eyebrow">AUDITORIA</p><h3>Histórico de alterações</h3></div><span className="muted">Últimos 20 eventos</span></div>
+                {auditLoading ? <p className="muted">Carregando histórico…</p> : auditEntries.length === 0 ? <p className="muted">Nenhuma alteração registrada após a ativação do histórico.</p> :
+                  <ol className="audit-list">{auditEntries.map(entry => <li key={entry.id}><div><strong>{entry.action === "INSERT" ? "Projeto criado" : entry.action === "DELETE" ? "Projeto removido" : "Projeto atualizado"}</strong><p>{entry.summary}</p><span>{entry.actor_email || "Usuário autenticado"} · {new Date(entry.changed_at).toLocaleString("pt-BR")}</span></div></li>)}</ol>}
+              </div>
             </section>;
           })()}
         </>}
