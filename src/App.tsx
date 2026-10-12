@@ -108,6 +108,7 @@ function App() {
   const [timelineDraft, setTimelineDraft] = useState<ManualTimeline>({});
   const [timelineSaving, setTimelineSaving] = useState(false);
   const [userProfiles, setUserProfiles] = useState<Array<{id:string; role:string; email:string|null}>>([]);
+  const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("editor");
   const [invitingUser, setInvitingUser] = useState(false);
@@ -278,11 +279,15 @@ function App() {
 
   async function inviteUser(event: FormEvent) {
     event.preventDefault();
-    if (!supabase || role !== "admin" || !inviteEmail.trim()) return;
+    if (!supabase || role !== "admin" || !inviteName.trim() || !inviteEmail.trim()) return;
     setInvitingUser(true); setError(""); setNotice("");
     // A criação de usuários deve ocorrer no servidor via Edge Function; nunca usar service_role no navegador.
     const { error: inviteError } = await supabase.functions.invoke("admin-invite-user", {
-      body: { email: inviteEmail.trim().toLowerCase(), role: inviteRole }
+      body: {
+        full_name: inviteName.trim(),
+        email: inviteEmail.trim().toLowerCase(),
+        role: inviteRole,
+      }
     });
     setInvitingUser(false);
     if (inviteError) {
@@ -290,6 +295,7 @@ function App() {
       return;
     }
     setNotice(`Convite enviado para ${inviteEmail.trim()}.`);
+    setInviteName("");
     setInviteEmail("");
     await loadUserProfiles();
   }
@@ -549,7 +555,7 @@ function App() {
             <div className="admin-users-intro"><div className="admin-users-icon"><UserCog size={25}/></div><div><h2>Usuários e permissões</h2><p>Convide pessoas para acessar o Cronograma Criare e controle o nível de acesso de cada uma.</p></div><button className="secondary-button" onClick={() => void loadUserProfiles()}><RefreshCw size={15}/> Atualizar lista</button></div>
             <form className="admin-invite-card" onSubmit={inviteUser}>
               <div className="admin-card-heading"><span className="admin-card-icon"><UserPlus size={20}/></span><div><h3>Adicionar usuário</h3><p>O usuário receberá um convite por e-mail para acessar a aplicação.</p></div></div>
-              <div className="admin-invite-fields"><label>E-mail do usuário<input type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="nome@empresa.com.br" required/></label><label>Perfil de acesso<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="viewer">Visualizador — somente consulta</option><option value="editor">Editor — pode alterar projetos</option><option value="admin">Administrador — acesso completo</option></select></label><button className="primary-button" type="submit" disabled={invitingUser || !inviteEmail.trim()}><Mail size={16}/>{invitingUser ? "Enviando convite…" : "Enviar convite"}</button></div>
+              <div className="admin-invite-fields"><label>Nome do usuário<input type="text" value={inviteName} onChange={e=>setInviteName(e.target.value)} placeholder="Nome completo" required maxLength={160}/></label><label>E-mail do usuário<input type="email" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} placeholder="nome@empresa.com.br" required/></label><label>Perfil de acesso<select value={inviteRole} onChange={e=>setInviteRole(e.target.value)}><option value="viewer">Visualizador — somente consulta</option><option value="editor">Editor — pode alterar projetos</option><option value="admin">Administrador — acesso completo</option></select></label><button className="primary-button" type="submit" disabled={invitingUser || !inviteName.trim() || !inviteEmail.trim()}><Mail size={16}/>{invitingUser ? "Enviando convite…" : "Enviar convite"}</button></div>
               <p className="admin-security-note"><ShieldCheck size={15}/> O convite é processado no servidor. A chave administrativa do Supabase não deve ficar no frontend.</p>
             </form>
             <section className="admin-users-list-card"><div className="admin-users-list-heading"><div><h3>Usuários cadastrados</h3><p>{userProfiles.length} perfil(is) encontrado(s)</p></div><span className="admin-total-badge"><Users size={15}/> {userProfiles.length}</span></div>
